@@ -1,0 +1,19 @@
+{
+  "name": "hmi-server",
+  "version": "0.1.0",
+  "description": "Human Machine Interface of FANAP",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hmi",
+    "fanap",
+    "masoudmanson"
+  ],
+  "author": "Masoud Amjadi",
+  "license": "MIT",
+  "dependencies": {
+    "podasync": "^2.5.3"
+  }
+}
