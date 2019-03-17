@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style/style.css">
 
     <script type="text/javascript">
-        POD_DRAW_URL = "http://127.0.0.1/poddraw/webapp";
+        POD_DRAW_URL = 'http://127.0.0.1/poddraw/webapp';//"http://172.16.110.26/poddraw/webapp"
     </script>
 
     <script type="text/javascript" src="js/podasync.min.js"></script>
@@ -15,8 +15,20 @@
     <script type="text/javascript" src="js/app.js"></script>
 </head>
 
-<body onload="main('podGraph', 'outlineContainer', 'statusContainer')">
+<body>
 <div id="podGraph"></div>
 <div id="outlineContainer"></div>
 <div id="statusContainer"></div>
+
+<script type="text/javascript">
+    (function() {
+        main({
+            graphContainer: 'podGraph',
+            outlineContainer: 'outlineContainer',
+            statusContainer: 'statusContainer',
+            renderingPitch: 'medium' // medium or low
+        });
+    })();
+</script>
 </body>
+
