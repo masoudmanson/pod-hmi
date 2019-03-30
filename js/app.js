@@ -313,12 +313,12 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
     if (toolbarContainer != null) {
         addToolbarButton(graph, toolbarContainer, 'async', 'Async: Connecting', '', false);
         addToolbarButton(graph, toolbarContainer, 'getMaps', 'Get Maps List', '', false);
-        addToolbarButton(graph, toolbarContainer, 'zoomIn', '', '/style/img/zoom-in.svg', false);
-        addToolbarButton(graph, toolbarContainer, 'zoomOut', '', '/style/img/zoom-out.svg', false);
-        addToolbarButton(graph, toolbarContainer, 'actualSize', '', '/style/img/full-size.svg', false);
-        addToolbarButton(graph, toolbarContainer, 'fit', '', '/style/img/screen.svg', false);
+        addToolbarButton(graph, toolbarContainer, 'zoomIn', '', 'style/img/zoom-in.svg', false);
+        addToolbarButton(graph, toolbarContainer, 'zoomOut', '', 'style/img/zoom-out.svg', false);
+        addToolbarButton(graph, toolbarContainer, 'actualSize', '', 'style/img/full-size.svg', false);
+        addToolbarButton(graph, toolbarContainer, 'fit', '', 'style/img/screen.svg', false);
         if (typeof mapData.data == 'object') {
-            addToolbarButton(graph, toolbarContainer, 'theme', '', '/style/img/theme.svg', false);
+            addToolbarButton(graph, toolbarContainer, 'theme', '', 'style/img/theme.svg', false);
         }
     }
     graph.dblClick = function(evt, cell) {
