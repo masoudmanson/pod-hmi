@@ -1,6 +1,7 @@
 * {
     margin: 0;
     padding: 0;
+    outline: none !important;
 }
 
 #podGraph {
@@ -60,7 +61,7 @@
     -o-transform: scale(1);
     transform: scale(1);
     opacity: 1;
-    background: rgba(255, 255, 255, 1);
+    /*background: rgba(255, 255, 255, 1);*/
 }
 
 #statusContainer {
@@ -69,12 +70,12 @@
     bottom: 15px;
     left: 0px;
     right: 10px;
-    opacity: 0.4;
     -webkit-transition: all .2s;
     -moz-transition: all .2s;
     -ms-transition: all .2s;
     -o-transition: all .2s;
     transition: all .2s;
+    /*opacity: 0.4;*/
 }
 
 #statusContainer:hover {
@@ -83,34 +84,8 @@
 
 #statusContainer button {
     margin: 0 5px;
-    padding: 5px 10px;
-}
-
-
-/*
- * Animation Classes
-**/
-
-.flow-forward {
-    stroke-dasharray: 8;
-    animation: dash-forward 0.5s linear;
-    animation-iteration-count: infinite;
-}
-
-@keyframes dash-forward {
-    to {
-        stroke-dashoffset: -16;
-    }
-}
-
-.flow-backward {
-    stroke-dasharray: 8;
-    animation: dash-backward 0.5s linear;
-    animation-iteration-count: infinite;
-}
-
-@keyframes dash-backward {
-    to {
-        stroke-dashoffset: +16;
-    }
+    padding: 7px 12px;
+    border: none !important;
+    border-radius: 3px !important;
+    cursor: pointer;
 }
