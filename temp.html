@@ -9,13 +9,22 @@
 <head>
     <title>Offpage connector example for mxGraph</title>
 
-    <!-- Sets the basepath for the library if not in same directory -->
+    <link rel="stylesheet" href="style/style.css">
+
     <script type="text/javascript">
-        mxBasePath = '../src';
+        POD_DRAW_URL = "http://172.16.110.26/poddraw/webapp";
     </script>
 
+    <script type="text/javascript" src="js/podasync.min.js"></script>
+    <script type="text/javascript" src="js/viewer.min.js"></script>
+    <script type="text/javascript" src="js/app.js"></script>
+    <!-- Sets the basepath for the library if not in same directory -->
+    <!--<script type="text/javascript">-->
+        <!--mxBasePath = '../src';-->
+    <!--</script>-->
+
     <!-- Loads and initializes the library -->
-    <script type="text/javascript" src="../src/js/mxClient.js"></script>
+    <!--<script type="text/javascript" src="../src/js/mxClient.js"></script>-->
 
     <!-- Example code -->
     <script type="text/javascript">

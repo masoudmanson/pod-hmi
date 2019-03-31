@@ -242,10 +242,11 @@ function main(params) {
 
             switch (mapData.type) {
                 case 'file':
-                    read(graph, mapXmlData);
+                    createGraphFromXmlFile(graph, mapXmlData);
                     break;
 
                 case 'text':
+                    createGraphFromXmlText(graph, mapXmlData);
                     break;
 
                 default:
@@ -290,12 +291,71 @@ function main(params) {
     }
 }
 
-function read(graph, filename) {
+function createGraphFromXmlFile(graph, filename) {
     var req = mxUtils.load(filename);
+    console.log("req", req);
     var root = req.getDocumentElement();
-    var dec = new mxCodec(root.ownerDocument);
+    console.log("root", root, root.nodeName);
 
-    dec.decode(root, graph.getModel());
+    switch(root.nodeName) {
+        case "mxGraphModel":
+            console.log("root.ownerDocument", root.ownerDocument, typeof root.ownerDocument);
+            var dec = new mxCodec(root.ownerDocument);
+            dec.decode(root, graph.getModel());
+            break;
+
+        case "mxfile":
+            var childNodes = mxUtils.getChildNodes(root);
+            var diagrams = [];
+            for(var n in childNodes) {
+                var data = mxUtils.getTextContent(childNodes[n]);
+
+                try {
+                    data = atob(data);
+                }
+                catch (e) {
+                    console.log(e);
+                    return;
+                }
+
+                try {
+                    data = bytesToString(pako.inflateRaw(data));
+                }
+                catch (e) {
+                    console.log(e);
+                    return;
+                }
+
+                try {
+                    data = decodeURIComponent(data);
+                }
+                catch (e) {
+                    console.log(e);
+                    return;
+                }
+
+                if (data.length > 0) {
+                    diagrams.push(data);
+                }
+            }
+
+            // console.log(diagrams[0], typeof diagrams[0]);
+            // console.log(mxUtils.parseXml(diagrams[0]), typeof mxUtils.parseXml(diagrams[0]));
+            console.log("mxUtils.parseXml(diagrams[0]).ownerDocument", mxUtils.parseXml(diagrams[0]).ownerDocument);
+
+            var doc = mxUtils.parseXml(diagrams[0]);
+            var dec = new mxCodec(doc);
+            dec.decode(doc.documentElement, graph.getModel());
+
+            break;
+    }
+
+};
+
+function createGraphFromXmlText(graph, xmlContent) {
+    var doc = mxUtils.parseXml(xmlContent);
+    var dec = new mxCodec(doc);
+    dec.decode(doc.documentElement, graph.getModel());
 };
 
 function createGraph(graphContainer, toolbarContainer, outlineContainer) {
@@ -312,7 +372,7 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
 
     if (toolbarContainer != null) {
         addToolbarButton(graph, toolbarContainer, 'async', 'Async: Connecting', '', false);
-        addToolbarButton(graph, toolbarContainer, 'getMaps', 'Get Maps List', '', false);
+        // addToolbarButton(graph, toolbarContainer, 'getMaps', 'Get Maps List', '', false);
         addToolbarButton(graph, toolbarContainer, 'zoomIn', '', 'style/img/zoom-in.svg', false);
         addToolbarButton(graph, toolbarContainer, 'zoomOut', '', 'style/img/zoom-out.svg', false);
         addToolbarButton(graph, toolbarContainer, 'actualSize', '', 'style/img/full-size.svg', false);
@@ -454,10 +514,12 @@ function changeTheme() {
     try {
         switch (mapData.type) {
             case 'file':
-                read(graph, mapXmlData);
+                createGraphFromXmlFile(graph, mapXmlData);
                 break;
 
             case 'text':
+                console.log("injam avazi", mapXmlData);
+                createGraphFromXmlText(graph, mapXmlData);
                 break;
 
             default:
@@ -819,11 +881,21 @@ window.addEventListener('resize', function() {
 function fakeDataGenerator() {
     setInterval(function() {
         var data = {
-            entityId: 2,//Math.ceil(Math.random() * 10),
+            entityId: Math.ceil(Math.random() * 4),
             value: Math.floor(Math.random() * 200),
             creationTime: Date.now()
         };
 
         asyncData[data.entityId] = data.value;
-    }, 100);
+    }, 10);
 }
+
+function bytesToString(arr) {
+    var str = '';
+
+    for (var i = 0; i < arr.length; i++) {
+        str += String.fromCharCode(arr[i]);
+    }
+
+    return str;
+};
