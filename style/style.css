@@ -34,7 +34,7 @@
 }
 
 #outlineContainer {
-    position: absolute;
+    position: fixed;
     overflow: hidden;
     top: 10px;
     right: 10px;
@@ -88,4 +88,30 @@
     border: none !important;
     border-radius: 3px !important;
     cursor: pointer;
+}
+
+/**
+ * ----------------------------------------
+ * animation rotate-center
+ * ----------------------------------------
+ */
+@-webkit-keyframes rotate-center {
+    0% {
+        -webkit-transform: rotate(0);
+        transform: rotate(0);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+@keyframes rotate-center {
+    0% {
+        -webkit-transform: rotate(0);
+        transform: rotate(0);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
 }

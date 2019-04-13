@@ -5,6 +5,9 @@ var graph,
     MAP_LEDS = {},
     MAP_PROGRESS_BAR = {},
     MAP_SPEEDOMETER = {},
+    MAP_CALLBACKS = {},
+    // MAP_ANIMATIONS = {},
+    DYNAMIC_CELLS = {},
     mapData,
     mapTheme = 'light',
     graphContainer,
@@ -16,8 +19,6 @@ var graph,
     asyncStatus = false,
     numbersRoundPrecision;
 
-var DYNAMIC_CELLS = [];
-
 var cw, ch,
     margin = 50,
     max = 2;
@@ -27,7 +28,7 @@ var containerDOM, outlineDOM, statusDOM;
 var params = {
     socketAddress: 'ws://172.16.110.20:8003/ws',
     deviceId: 'hmi-server',
-    serverName: 'oauth-wire',
+    serverName: 'fanitoring-service',
     appId: 'hmi-app',
     peerId: 2,
     reconnectOnClose: false,
@@ -72,7 +73,6 @@ function initAsync() {
          */
         var content = JSON.parse(msg.content);
         asyncData[content.entityId] = content.value;
-        console.log(content);
     });
 
     /**
@@ -130,23 +130,31 @@ function getMapsList() {
     // Get Maps List
     // var data = {
     //     type: 5,
-    //     content: ''
+    //     content: '',
+    //     messageId: new Date().getTime()
     // };
 
     // Save Map
+    // var data = {
+    //     type: 3,
+    //     content: {
+    //         name: new Date().getTime().toString(),
+    //         content: new Date().toString()
+    //     }
+    // };
+
     var data = {
         type: 3,
-        content: {
-            name: new Date().getTime(),
-            content: new Date()
-        }
+        content: JSON.stringify({
+            name: 'Test Map',
+            content: 'This is a sample string!'
+        })
     };
 
     var asyncMessage = {
-        type: 5,
+        type: 3,
         content: {
-            // peerName: 'fanitoring-service',
-            receivers: [2, 165592],
+            peerName: 'fanitoring-service',
             content: JSON.stringify(data)
         }
     };
@@ -222,6 +230,18 @@ function main(params) {
 
         graph = createGraph(containerDOM, statusDOM, outlineDOM);
 
+        graph.addMouseListener({
+            mouseDown: function(sender, evt) {
+                if (typeof evt.sourceState == 'object' && MAP_CALLBACKS.hasOwnProperty(evt.sourceState.cell.id)) {
+                    eval(MAP_CALLBACKS[evt.sourceState.cell.id]);
+                }
+            },
+            mouseMove: function(sender, evt) {
+            },
+            mouseUp: function(sender, evt) {
+            }
+        });
+
         graph.getModel()
             .beginUpdate();
 
@@ -287,27 +307,23 @@ function main(params) {
         }
 
         initAsync();
-        fakeDataGenerator();
+        // fakeDataGenerator();
     }
 }
 
 function createGraphFromXmlFile(graph, filename) {
     var req = mxUtils.load(filename);
-    console.log("req", req);
     var root = req.getDocumentElement();
-    console.log("root", root, root.nodeName);
-
-    switch(root.nodeName) {
-        case "mxGraphModel":
-            console.log("root.ownerDocument", root.ownerDocument, typeof root.ownerDocument);
+    switch (root.nodeName) {
+        case 'mxGraphModel':
             var dec = new mxCodec(root.ownerDocument);
             dec.decode(root, graph.getModel());
             break;
 
-        case "mxfile":
+        case 'mxfile':
             var childNodes = mxUtils.getChildNodes(root);
             var diagrams = [];
-            for(var n in childNodes) {
+            for (var n in childNodes) {
                 var data = mxUtils.getTextContent(childNodes[n]);
 
                 try {
@@ -339,17 +355,13 @@ function createGraphFromXmlFile(graph, filename) {
                 }
             }
 
-            // console.log(diagrams[0], typeof diagrams[0]);
-            // console.log(mxUtils.parseXml(diagrams[0]), typeof mxUtils.parseXml(diagrams[0]));
-            console.log("mxUtils.parseXml(diagrams[0]).ownerDocument", mxUtils.parseXml(diagrams[0]).ownerDocument);
-
+            //TODO pagination between maps
             var doc = mxUtils.parseXml(diagrams[0]);
             var dec = new mxCodec(doc);
             dec.decode(doc.documentElement, graph.getModel());
 
             break;
     }
-
 };
 
 function createGraphFromXmlText(graph, xmlContent) {
@@ -415,6 +427,7 @@ function renderLiveDataOnMapWithPitch(content) {
                         }
                         finally {
                             graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, [cell]);
+                            // graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, color, [cell]);
                         }
                         break;
 
@@ -490,6 +503,12 @@ function renderLiveDataOnMapWithPitch(content) {
                 }
             }
         }
+
+        // if(MAP_ANIMATIONS[entityId]) {
+        //     for (var i = 0; i < MAP_ANIMATIONS[entityId].length; i++) {
+        //         console.log("Do this animation for fucks sake", MAP_ANIMATIONS[entityId], entityId);
+        //     }
+        // }
     }
 
     model.endUpdate();
@@ -518,7 +537,7 @@ function changeTheme() {
                 break;
 
             case 'text':
-                console.log("injam avazi", mapXmlData);
+                console.log('injam avazi', mapXmlData);
                 createGraphFromXmlText(graph, mapXmlData);
                 break;
 
@@ -658,6 +677,8 @@ function addToolbarButton(graphObj, toolbar, action, label, image, isTransparent
 };
 
 function updateMap() {
+    DYNAMIC_CELLS = {};
+    // MAP_ANIMATIONS = {};
     allCells = Object.values(graph.getModel().cells);
 
     try {
@@ -665,7 +686,19 @@ function updateMap() {
             if (mxUtils.isNode(allCells[i].value)) {
                 var cellEntityId = allCells[i].getAttribute('entityId');
 
-                if (cellEntityId > 0) {
+                if (allCells[i].getAttribute('onClick') != undefined) {
+                    MAP_CALLBACKS[allCells[i].id] = allCells[i].getAttribute('onClick');
+                    // console.log(allCells[i].getAttribute('onClick'));
+                    // console.log(typeof allCells[i].getAttribute('onClick'));
+                    //
+                    // var target = allCells[i];
+                    //
+                    // mxEvent.addListener(target, 'click', function() {
+                    //     eval(allCells[i].getAttribute('onClick'));
+                    // });
+                }
+
+                if (cellEntityId != '') {
                     if (!Array.isArray(DYNAMIC_CELLS[cellEntityId])) {
                         DYNAMIC_CELLS[cellEntityId] = [];
                     }
@@ -687,28 +720,29 @@ function updateMap() {
 
                             if (allCells[i].children) {
                                 var children = allCells[i].children[0].children;
+                                if (children) {
+                                    for (var j = 0; j < children.length; j++) {
+                                        if (mxUtils.isNode(children[j].value)) {
+                                            if (children[j].getAttribute('active') == 'yes' ||
+                                                children[j].getAttribute('active')
+                                                    .toLowerCase() == 'true' || parseInt(children[j].getAttribute('active')) == 1) {
+                                                MAP_LEDS[cellEntityId].push({
+                                                    cell: children[j],
+                                                    id: children[j].id,
+                                                    label: children[j].getAttribute('label'),
+                                                    values: ledValues,
+                                                    colors: ledColors
+                                                });
 
-                                for (var j = 0; j < children.length; j++) {
-                                    if (mxUtils.isNode(children[j].value)) {
-                                        if (children[j].getAttribute('active') == 'yes' ||
-                                            children[j].getAttribute('active')
-                                                .toLowerCase() == 'true' || parseInt(children[j].getAttribute('active')) == 1) {
-                                            MAP_LEDS[cellEntityId].push({
-                                                cell: children[j],
-                                                id: children[j].id,
-                                                label: children[j].getAttribute('label'),
-                                                values: ledValues,
-                                                colors: ledColors
-                                            });
-
-                                            DYNAMIC_CELLS[cellEntityId].push({
-                                                type: 'led',
-                                                cell: children[j],
-                                                id: children[j].id,
-                                                label: children[j].getAttribute('label'),
-                                                values: ledValues,
-                                                colors: ledColors
-                                            });
+                                                DYNAMIC_CELLS[cellEntityId].push({
+                                                    type: 'led',
+                                                    cell: children[j],
+                                                    id: children[j].id,
+                                                    label: children[j].getAttribute('label'),
+                                                    values: ledValues,
+                                                    colors: ledColors
+                                                });
+                                            }
                                         }
                                     }
                                 }
@@ -734,113 +768,110 @@ function updateMap() {
                             break;
 
                         case 'progress_bar':
-                            if (cellEntityId > 0) {
-                                var cellGeometry = allCells[i].getGeometry(),
-                                    cellLength = (cellGeometry.height > cellGeometry.width) ? cellGeometry.height : cellGeometry.width,
-                                    valueRatio = (allCells[i].getAttribute('maxValue') > 0) ? allCells[i].getAttribute('maxValue') / cellLength : 1,
-                                    progressBarStops = [],
-                                    progressBarColors = [],
-                                    progressBarBreakPoints = allCells[i].getAttribute('breakPoints')
-                                        .split(',')
-                                        .map(function(str) {
-                                            progressBarStops.push(str.split(':')[0].trim());
-                                            progressBarColors.push(str.split(':')[1].trim());
-                                        });
+                            var cellGeometry = allCells[i].getGeometry(),
+                                cellLength = (cellGeometry.height > cellGeometry.width) ? cellGeometry.height : cellGeometry.width,
+                                valueRatio = (allCells[i].getAttribute('maxValue') > 0) ? allCells[i].getAttribute('maxValue') / cellLength : 1,
+                                progressBarStops = [],
+                                progressBarColors = [],
+                                progressBarBreakPoints = allCells[i].getAttribute('breakPoints')
+                                    .split(',')
+                                    .map(function(str) {
+                                        progressBarStops.push(str.split(':')[0].trim());
+                                        progressBarColors.push(str.split(':')[1].trim());
+                                    });
 
-                                if (!Array.isArray(MAP_PROGRESS_BAR[cellEntityId])) {
-                                    MAP_PROGRESS_BAR[cellEntityId] = [];
-                                }
-
-                                MAP_PROGRESS_BAR[cellEntityId].push({
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    valueRatio: valueRatio,
-                                    progressBarStops: progressBarStops,
-                                    progressBarColors: progressBarColors,
-                                    endPoint: {
-                                        x: cellGeometry.y + cellGeometry.width,
-                                        y: cellGeometry.y + cellGeometry.height
-                                    },
-                                    cellOrientation: (cellGeometry.height > cellGeometry.width)
-                                        ? 'vertical'
-                                        : 'horizontal'
-                                });
-
-                                DYNAMIC_CELLS[cellEntityId].push({
-                                    type: 'progress_bar',
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    valueRatio: valueRatio,
-                                    progressBarStops: progressBarStops,
-                                    progressBarColors: progressBarColors,
-                                    endPoint: {
-                                        x: cellGeometry.y + cellGeometry.width,
-                                        y: cellGeometry.y + cellGeometry.height
-                                    },
-                                    cellOrientation: (cellGeometry.height > cellGeometry.width)
-                                        ? 'vertical'
-                                        : 'horizontal'
-                                });
+                            if (!Array.isArray(MAP_PROGRESS_BAR[cellEntityId])) {
+                                MAP_PROGRESS_BAR[cellEntityId] = [];
                             }
+
+                            MAP_PROGRESS_BAR[cellEntityId].push({
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                valueRatio: valueRatio,
+                                progressBarStops: progressBarStops,
+                                progressBarColors: progressBarColors,
+                                endPoint: {
+                                    x: cellGeometry.y + cellGeometry.width,
+                                    y: cellGeometry.y + cellGeometry.height
+                                },
+                                cellOrientation: (cellGeometry.height > cellGeometry.width)
+                                    ? 'vertical'
+                                    : 'horizontal'
+                            });
+
+                            DYNAMIC_CELLS[cellEntityId].push({
+                                type: 'progress_bar',
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                valueRatio: valueRatio,
+                                progressBarStops: progressBarStops,
+                                progressBarColors: progressBarColors,
+                                endPoint: {
+                                    x: cellGeometry.y + cellGeometry.width,
+                                    y: cellGeometry.y + cellGeometry.height
+                                },
+                                cellOrientation: (cellGeometry.height > cellGeometry.width)
+                                    ? 'vertical'
+                                    : 'horizontal'
+                            });
                             break;
 
                         case 'speedometer':
-                            if (cellEntityId > 0) {
-
-                                if (!Array.isArray(MAP_SPEEDOMETER[cellEntityId])) {
-                                    MAP_SPEEDOMETER[cellEntityId] = [];
-                                }
-
-                                MAP_SPEEDOMETER[cellEntityId].push({
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    minValue: allCells[i].getAttribute('minValue'),
-                                    maxValue: allCells[i].getAttribute('maxValue'),
-                                    step: allCells[i].getAttribute('step'),
-                                    angel: allCells[i].getAttribute('angel'),
-                                    previousValue: 0
-                                });
-
-                                DYNAMIC_CELLS[cellEntityId].push({
-                                    type: 'speedometer',
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    minValue: allCells[i].getAttribute('minValue'),
-                                    maxValue: allCells[i].getAttribute('maxValue'),
-                                    step: allCells[i].getAttribute('step'),
-                                    angel: allCells[i].getAttribute('angel'),
-                                    previousValue: 0
-                                });
+                            if (!Array.isArray(MAP_SPEEDOMETER[cellEntityId])) {
+                                MAP_SPEEDOMETER[cellEntityId] = [];
                             }
+
+                            MAP_SPEEDOMETER[cellEntityId].push({
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                minValue: allCells[i].getAttribute('minValue'),
+                                maxValue: allCells[i].getAttribute('maxValue'),
+                                step: allCells[i].getAttribute('step'),
+                                angel: allCells[i].getAttribute('angel'),
+                                previousValue: 0
+                            });
+
+                            DYNAMIC_CELLS[cellEntityId].push({
+                                type: 'speedometer',
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                minValue: allCells[i].getAttribute('minValue'),
+                                maxValue: allCells[i].getAttribute('maxValue'),
+                                step: allCells[i].getAttribute('step'),
+                                angel: allCells[i].getAttribute('angel'),
+                                previousValue: 0
+                            });
                             break;
 
                         default:
-                            if (cellEntityId > 0) {
-
-                                if (!Array.isArray(MAP_CELLS[cellEntityId])) {
-                                    MAP_CELLS[cellEntityId] = [];
-                                }
-
-                                MAP_CELLS[cellEntityId].push({
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    unit: allCells[i].getAttribute('unit')
-                                });
-
-                                DYNAMIC_CELLS[cellEntityId].push({
-                                    cell: allCells[i],
-                                    id: allCells[i].id,
-                                    label: allCells[i].getAttribute('label'),
-                                    unit: allCells[i].getAttribute('unit')
-                                });
+                            if (!Array.isArray(MAP_CELLS[cellEntityId])) {
+                                MAP_CELLS[cellEntityId] = [];
                             }
+
+                            MAP_CELLS[cellEntityId].push({
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                unit: allCells[i].getAttribute('unit')
+                            });
+
+                            DYNAMIC_CELLS[cellEntityId].push({
+                                cell: allCells[i],
+                                id: allCells[i].id,
+                                label: allCells[i].getAttribute('label'),
+                                unit: allCells[i].getAttribute('unit')
+                            });
                             break;
                     }
+
+                    // if(allCells[i].getAttribute('animation')) {
+                    //     console.log(allCells[i].getAttribute('id'));
+                    //     MAP_ANIMATIONS[cellEntityId] = allCells[i].getAttribute('animation');
+                    // }
                 }
             }
         }
@@ -849,15 +880,14 @@ function updateMap() {
         console.error(e);
     }
 
-    // console.log({
-    //     DYNAMIC_CELLS,
-    //     MAP_CELLS,
-    //     MAP_LEDS,
-    //     MAP_PROGRESS_BAR,
-    //     MAP_SPEEDOMETER
-    // });
-    //
-    // fakeDataGenerator();
+    console.log({
+        DYNAMIC_CELLS,
+        MAP_ANIMATIONS,
+        MAP_CELLS,
+        MAP_LEDS,
+        MAP_PROGRESS_BAR,
+        MAP_SPEEDOMETER
+    });
 }
 
 /**
@@ -881,13 +911,164 @@ window.addEventListener('resize', function() {
 function fakeDataGenerator() {
     setInterval(function() {
         var data = {
-            entityId: Math.ceil(Math.random() * 4),
-            value: Math.floor(Math.random() * 200),
+            entityId: 'LT201',// Math.ceil(Math.random() * 4),
+            value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
         };
 
         asyncData[data.entityId] = data.value;
-    }, 10);
+
+        var data = {
+            entityId: 'LT202',
+            value: Math.floor(Math.random() * 30),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        data = {
+            entityId: 'Rope201',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        data = {
+            entityId: 'Rope202',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        data = {
+            entityId: 'CONV201_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+        data = {
+            entityId: 'CONV202_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+        data = {
+            entityId: 'CONV203_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        data = {
+            entityId: 'FEED201_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        //%%%%%%%%%%%%%%%%%%%%%
+
+        data = {
+            entityId: 'SV101_Open',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+        data = {
+            entityId: 'SV102_Open',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'LT101',
+            value: Math.floor(Math.random() * 30),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'Pump101_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'Pump102_Run',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'LT102',
+            value: Math.floor(Math.random() * 30),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'PT101',
+            value: Math.random() * 2,
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'PT102',
+            value: Math.random() * 2,
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'ELEMENT101_ON',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'FAN101_ON',
+            value: Math.floor(Math.random() * 2),
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'TT101',
+            value: Math.random() * 50,
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+
+        var data = {
+            entityId: 'TT102',
+            value: Math.random() * 50,
+            creationTime: Date.now()
+        };
+
+        asyncData[data.entityId] = data.value;
+    }, 100);
 }
 
 function bytesToString(arr) {
