@@ -27,15 +27,16 @@ var containerDOM, outlineDOM, statusDOM;
 
 var params = {
     socketAddress: 'ws://172.16.110.20:8003/ws',
-    deviceId: 'hmi-server',
-    serverName: 'fanitoring-service',
-    appId: 'hmi-app',
-    peerId: 2,
-    reconnectOnClose: false,
+    // deviceId: 'hmi-server',
+    serverName: 'fanitoring-process',
+    // serverName: 'fanitoring-service',
+    // appId: 'hmi-app',
+    // peerId: 2,
+    reconnectOnClose: true,
     connectionCheckTimeout: 10000,
-    serverRegisteration: false,
+    serverRegisteration: true,
     asyncLogging: {
-        onFunction: true
+        onFunction: true,
         // onMessageReceive: true,
         // onMessageSend: true
     }
@@ -57,6 +58,7 @@ function initAsync() {
      * you would be abale to send messages through
      */
     asyncClient.on('asyncReady', function() {
+        primaryHandshake();
         updateMap();
     });
 
@@ -124,6 +126,23 @@ function initAsync() {
                 break;
         }
     });
+}
+
+function primaryHandshake() {
+    var data = {
+        type: 7,
+        content: ''
+    };
+
+    var asyncMessage = {
+        type: 3,
+        content: {
+            peerName: params.serverName,
+            content: JSON.stringify(data)
+        }
+    };
+
+    asyncClient.send(asyncMessage);
 }
 
 function getMapsList() {
@@ -494,7 +513,25 @@ function renderLiveDataOnMapWithPitch(content) {
                                 cell = customNode.cell,
                                 unit = customNode.unit || '';
 
-                            model.setValue(cell, Math.round(value * Math.pow(10, numbersRoundPrecision)) / Math.pow(10, numbersRoundPrecision) + ' ' + unit);
+                            var label = cell.getAttribute('label');
+                            var newValue = Math.round(value * Math.pow(10, numbersRoundPrecision)) / Math.pow(10, numbersRoundPrecision) + ' ' + unit;
+
+                            if(label.indexOf("<") != -1) {
+                                var regex = /[>]([^<\n]+?)[<]/gm;
+                                var result = label.match(regex);
+
+                                if(result.length == 1) {
+                                    var mim = label.replace(new RegExp(regex), ">" + newValue.toString() + "<");
+                                    cell.value.setAttribute('label', mim);
+                                } else {
+                                    var start = label.indexOf(result[0]);
+                                    var end = label.indexOf(result[result.length-1]);
+                                    var newLabel = label.substr(0, start + 1) + newValue.toString() + label.substring(end + result[result.length-1].length - 1, label.length);
+                                    cell.value.setAttribute('label', newLabel);
+                                }
+                            } else {
+                                cell.value.setAttribute('label', newValue);
+                            }
                         }
                         catch (e) {
                             console.error(e);
@@ -537,7 +574,6 @@ function changeTheme() {
                 break;
 
             case 'text':
-                console.log('injam avazi', mapXmlData);
                 createGraphFromXmlText(graph, mapXmlData);
                 break;
 
@@ -880,14 +916,14 @@ function updateMap() {
         console.error(e);
     }
 
-    console.log({
-        DYNAMIC_CELLS,
-        MAP_ANIMATIONS,
-        MAP_CELLS,
-        MAP_LEDS,
-        MAP_PROGRESS_BAR,
-        MAP_SPEEDOMETER
-    });
+    // console.log({
+    //     DYNAMIC_CELLS,
+    //     // MAP_ANIMATIONS,
+    //     MAP_CELLS,
+    //     MAP_LEDS,
+    //     MAP_PROGRESS_BAR,
+    //     MAP_SPEEDOMETER
+    // });
 }
 
 /**
