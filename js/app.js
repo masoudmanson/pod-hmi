@@ -326,7 +326,7 @@ function main(params) {
         }
 
         initAsync();
-        fakeDataGenerator();
+        // fakeDataGenerator();
     }
 }
 
