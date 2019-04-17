@@ -326,7 +326,7 @@ function main(params) {
         }
 
         initAsync();
-        // fakeDataGenerator();
+        fakeDataGenerator();
     }
 }
 
@@ -714,6 +714,10 @@ function addToolbarButton(graphObj, toolbar, action, label, image, isTransparent
 
 function updateMap() {
     DYNAMIC_CELLS = {};
+    // MAP_CELLS = {},
+    // MAP_LEDS = {},
+    // MAP_PROGRESS_BAR = {},
+    // MAP_SPEEDOMETER = {};
     // MAP_ANIMATIONS = {};
     allCells = Object.values(graph.getModel().cells);
 
@@ -806,7 +810,8 @@ function updateMap() {
                         case 'progress_bar':
                             var cellGeometry = allCells[i].getGeometry(),
                                 cellLength = (cellGeometry.height > cellGeometry.width) ? cellGeometry.height : cellGeometry.width,
-                                valueRatio = (allCells[i].getAttribute('maxValue') > 0) ? allCells[i].getAttribute('maxValue') / cellLength : 1,
+                                initialLength = (MAP_PROGRESS_BAR[cellEntityId] && MAP_PROGRESS_BAR[cellEntityId][0].initialLength > 0) ? MAP_PROGRESS_BAR[cellEntityId][0].initialLength : cellLength,
+                                valueRatio = (allCells[i].getAttribute('maxValue') > 0) ? allCells[i].getAttribute('maxValue') / initialLength : 1,
                                 progressBarStops = [],
                                 progressBarColors = [],
                                 progressBarBreakPoints = allCells[i].getAttribute('breakPoints')
@@ -818,23 +823,24 @@ function updateMap() {
 
                             if (!Array.isArray(MAP_PROGRESS_BAR[cellEntityId])) {
                                 MAP_PROGRESS_BAR[cellEntityId] = [];
-                            }
 
-                            MAP_PROGRESS_BAR[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                valueRatio: valueRatio,
-                                progressBarStops: progressBarStops,
-                                progressBarColors: progressBarColors,
-                                endPoint: {
-                                    x: cellGeometry.y + cellGeometry.width,
-                                    y: cellGeometry.y + cellGeometry.height
-                                },
-                                cellOrientation: (cellGeometry.height > cellGeometry.width)
-                                    ? 'vertical'
-                                    : 'horizontal'
-                            });
+                                MAP_PROGRESS_BAR[cellEntityId].push({
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    initialLength: initialLength,
+                                    valueRatio: valueRatio,
+                                    progressBarStops: progressBarStops,
+                                    progressBarColors: progressBarColors,
+                                    endPoint: {
+                                        x: cellGeometry.y + cellGeometry.width,
+                                        y: cellGeometry.y + cellGeometry.height
+                                    },
+                                    cellOrientation: (cellGeometry.height > cellGeometry.width)
+                                        ? 'vertical'
+                                        : 'horizontal'
+                                });
+                            }
 
                             DYNAMIC_CELLS[cellEntityId].push({
                                 type: 'progress_bar',
@@ -842,6 +848,7 @@ function updateMap() {
                                 id: allCells[i].id,
                                 label: allCells[i].getAttribute('label'),
                                 valueRatio: valueRatio,
+                                initialLength: initialLength,
                                 progressBarStops: progressBarStops,
                                 progressBarColors: progressBarColors,
                                 endPoint: {
@@ -1050,7 +1057,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data.value;
 
         var data = {
-            entityId: 'LT102',
+            entityId: '11',
             value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
         };
