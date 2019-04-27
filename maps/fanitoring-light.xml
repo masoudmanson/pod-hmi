@@ -1,4 +1,4 @@
-<mxGraphModel dx="762" dy="810" grid="1" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1366" pageHeight="768" background="#f6f6f6" math="0" shadow="0">
+<mxGraphModel dx="118" dy="166" grid="1" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1366" pageHeight="768" background="#f6f6f6" math="0" shadow="0">
     <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
@@ -367,16 +367,6 @@
         <mxCell id="fpkZKej6CAZYogHnhLaZ-67" value="" style="group" parent="1" vertex="1" connectable="0">
             <mxGeometry x="163" y="663" width="16" height="17" as="geometry"/>
         </mxCell>
-        <object label="" type="led" entityId="36" breakPoints="0: red, 1:green" tooltip="Rope201" id="fpkZKej6CAZYogHnhLaZ-76">
-            <mxCell style="group" parent="1" vertex="1" connectable="0">
-                <mxGeometry x="403.5" y="347.5" width="12.499999999999899" height="13.5" as="geometry"/>
-            </mxCell>
-        </object>
-        <object label="&lt;span&gt;&lt;font style=&quot;font-size: 6px&quot;&gt;RS&lt;/font&gt;&lt;/span&gt;" type="led" entityId="36" breakPoints="0:red, 1:#64DD17" tooltip="Rope201" id="fpkZKej6CAZYogHnhLaZ-77">
-            <mxCell style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#64DD17;strokeColor=none;fontColor=#ffffff;" parent="fpkZKej6CAZYogHnhLaZ-76" vertex="1">
-                <mxGeometry x="-0.500000000000101" y="0.24999999999997016" width="13" height="13" as="geometry"/>
-            </mxCell>
-        </object>
         <mxCell id="fpkZKej6CAZYogHnhLaZ-80" value="" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.bardsir.tee_pipe;fillColor=#f5f5f5;direction=south;rounded=1;strokeColor=#666666;gradientColor=#b3b3b3;glass=0;gradientDirection=east;" parent="1" vertex="1">
             <mxGeometry x="761" y="243.2" width="32" height="26" as="geometry"/>
         </mxCell>
@@ -856,7 +846,7 @@
             <mxGeometry x="262" y="223.5" width="42" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="TO6Odt3lXqnu4BUW2luD-23" value="" style="group" parent="1" vertex="1" connectable="0">
-            <mxGeometry x="89" y="27" width="291" height="52" as="geometry"/>
+            <mxGeometry x="537.5" y="52" width="291" height="52" as="geometry"/>
         </mxCell>
         <mxCell id="5aWUOVuaCdnI7rtZLu7w-7" value="&lt;font color=&quot;#f47e20&quot; size=&quot;1&quot;&gt;&lt;b style=&quot;font-size: 24px&quot;&gt;Fanitoring Demo&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;shadow=0;glass=0;opacity=70;" parent="TO6Odt3lXqnu4BUW2luD-23" vertex="1">
             <mxGeometry x="97" y="7" width="194" height="25" as="geometry"/>
@@ -907,5 +897,10 @@
         <mxCell id="1nlRMQfcGJiTx01ikmoH-4" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=#b46504;fillColor=#fad7ac;rounded=1;shadow=0;arcSize=0;" parent="1" vertex="1">
             <mxGeometry x="283" y="326" width="13.718467396477868" height="13.718467396477868" as="geometry"/>
         </mxCell>
+        <object label="&lt;span&gt;&lt;font style=&quot;font-size: 6px&quot;&gt;RS&lt;/font&gt;&lt;/span&gt;" type="led" entityId="36" breakPoints="0:red, 1:#64DD17" tooltip="Rope201" id="fpkZKej6CAZYogHnhLaZ-77">
+            <mxCell style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#64DD17;strokeColor=none;fontColor=#ffffff;" parent="1" vertex="1">
+                <mxGeometry x="402.9999999999999" y="347.74999999999994" width="13" height="13" as="geometry"/>
+            </mxCell>
+        </object>
     </root>
 </mxGraphModel>
