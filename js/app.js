@@ -1054,7 +1054,7 @@ function handleAlarms(alarm) {
         positionLeft: (typeof toasterParams.positionHorizontal == 'string') ? toasterParams.positionHorizontal == 'left' : true,
         className: (typeof alarm.alarmType == 'string') ? 'toastify-' + alarm.alarmType : '',
         callback: function() {
-            alert("Kose nanat ashghal")
+            console.log("Close the notification")
         },
         actions: {
             acknowledge: {
