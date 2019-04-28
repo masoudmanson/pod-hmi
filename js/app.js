@@ -14,22 +14,35 @@ var graph,
     graphContainer,
     outlineContainer,
     statusContainer,
+    notificationContainer,
     renderingPitch,
     pitchInterval,
     asyncData = {},
-    alarms = [],
+    notifications = [],
     asyncStatus = false,
     numbersRoundPrecision,
     httpAjaxRequestInterval,
     protocolType,
     protocolParams,
-    toasterParams = {};
+    toasterParams = {},
+    notificationMenuOpen = null,
+    openNotifyMenu;
 
 var cw, ch,
     margin = 50,
     max = 2;
 
 var containerDOM, outlineDOM, statusDOM;
+
+/**
+ * Extending Array push
+ */
+notifications.push = function () {
+    // var element = document.getElementById(notificationContainer);
+    // element.insertBefore(arguments[0], element.firstChild);
+    // Toastify.reposition();
+    return Array.prototype.push.apply(this,arguments);
+}
 
 /**
  * Async Functions
@@ -65,7 +78,7 @@ function initAsync(params) {
         var content = JSON.parse(msg.content);
 
         if (content.type.toLowerCase() == 'alarm') {
-            handleAlarms(content);
+            handleNotifications(content);
         } else {
             asyncData[content.entityId] = content;
         }
@@ -269,6 +282,10 @@ function main(params) {
                 statusContainer = params.statusContainer;
             }
 
+            if (typeof params.notificationContainer == 'string') {
+                notificationContainer = params.notificationContainer;
+            }
+
             if (typeof params.renderingPitch == 'string') {
                 switch (params.renderingPitch) {
                     case 'high':
@@ -286,8 +303,13 @@ function main(params) {
                 }
             }
 
-            if(typeof params.alarms == 'object') {
-                toasterParams = params.alarms;
+            if(typeof params.notificationOptions == 'object') {
+                toasterParams = params.notificationOptions;
+                notificationMenuOpen = params.notificationOptions.enable || false;
+
+                if(!notificationMenuOpen) {
+                    document.getElementById(notificationContainer).style.display = 'none';
+                }
             }
 
             numbersRoundPrecision = (typeof params.numbersRoundPrecision == 'number') ? params.numbersRoundPrecision : 2;
@@ -393,12 +415,11 @@ function main(params) {
                 break;
         }
 
-
         /**
          * For Mockup Tests
          */
         updateMap();
-        fakeDataGenerator();
+        // fakeDataGenerator();
         pitchInterval && clearInterval(pitchInterval);
         pitchInterval = setInterval(function () {
             renderLiveDataOnMapWithPitch(asyncData);
@@ -484,6 +505,9 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
         if (protocolType == 'http') {
             addToolbarButton(graph, toolbarContainer, 'lastUpdate', 'Initializing ...', '', false);
         }
+        if(notificationContainer) {
+            addToolbarButton(graph, toolbarContainer, 'notifications', (notificationMenuOpen) ? 'Notifications: On' : 'Notifications: Off', '', false);
+        }
         addToolbarButton(graph, toolbarContainer, 'zoomIn', '', 'style/img/zoom-in.svg', false);
         addToolbarButton(graph, toolbarContainer, 'zoomOut', '', 'style/img/zoom-out.svg', false);
         addToolbarButton(graph, toolbarContainer, 'actualSize', '', 'style/img/full-size.svg', false);
@@ -512,6 +536,7 @@ function renderLiveDataOnMapWithPitch(content) {
 
         if (type.toLowerCase() == 'alarm') {
             console.log('Alarm received', content[key]);
+            handleNotifications(content[key]);
         } else {
             if (DYNAMIC_CELLS[entityId]) {
                 for (var i = 0; i < DYNAMIC_CELLS[entityId].length; i++) {
@@ -768,6 +793,25 @@ function addToolbarButton(graphObj, toolbar, action, label, image, isTransparent
 
                     case 2:
                         break;
+                }
+                break;
+
+            case 'notifications':
+                switch (notificationMenuOpen) {
+                    case true:
+                        document.getElementById(notificationContainer).style.display = 'none';
+                        notificationMenuOpen = false;
+                        document.getElementById('toolbar-notifications').innerText = 'Notifications: Off';
+                        Toastify.reposition();
+                        break;
+
+                    case false:
+                        document.getElementById(notificationContainer).style.display = 'block';
+                        notificationMenuOpen = true;
+                        document.getElementById('toolbar-notifications').innerText = 'Notifications: On';
+                        Toastify.reposition();
+                        break;
+
                 }
                 break;
 
@@ -1041,12 +1085,14 @@ function updateMap() {
     });
 }
 
-function handleAlarms(alarm) {
-    alarms.push(alarm);
+function handleNotifications(alarm) {
+    var uniqueId = new Date().getTime();
 
     Toastify({
+        selector: "notificationContainer",
         text: alarm.message,
         time: toasterTime(alarm.creationTime),
+        typeText: alarm.alarmType,
         duration: toasterParams.duration || 5000,
         close: toasterParams.closeBtn,
         autoClose: toasterParams.autoClose,
@@ -1054,38 +1100,43 @@ function handleAlarms(alarm) {
         positionLeft: (typeof toasterParams.positionHorizontal == 'string') ? toasterParams.positionHorizontal == 'left' : true,
         className: (typeof alarm.alarmType == 'string') ? 'toastify-' + alarm.alarmType : '',
         callback: function() {
-            console.log("Close the notification")
         },
         actions: {
             acknowledge: {
                 id: alarm.entityId,
-                name: "Acknowledge",
-                func: function() {
-                    sendAlarmAcknowledge(alarm.entityId);
+                uniqueId: uniqueId,
+                name: "Send Ack",
+                callback: function() {
+                    sendAlarmAcknowledge(alarm.entityId, uniqueId);
                 }
             },
             close: {
                 id: alarm.entityId,
+                uniqueId: uniqueId,
                 name: "Close",
                 disable: true,
-                func: function(event) {
+                callback: function(event) {
                     sendAlarmClose(alarm.entityId);
-                    document.body.removeChild(event.target.parentElement);
+                    event.target.parentElement.parentElement.removeChild(event.target.parentElement);
                     Toastify.reposition();
                 }
             },
-            hide: {
+            forceClose: {
                 id: alarm.entityId,
-                name: "Hide!",
-                func: function(event) {
-                    alert('You shall hide now!');
+                uniqueId: uniqueId,
+                name: "Force Close!",
+                callback: function(event) {
+                    event.target.parentElement.parentElement.removeChild(event.target.parentElement);
+                    Toastify.reposition();
                 }
             }
         }
-    }).showToast();
+    }).showToast(function(element) {
+        notifications.push(element);
+    });
 }
 
-function sendAlarmAcknowledge(id) {
+function sendAlarmAcknowledge(id, uniqueId) {
     var data = {
         type: 10,
         content: JSON.stringify({
@@ -1094,7 +1145,7 @@ function sendAlarmAcknowledge(id) {
     };
 
     sendAsyncMessage(data);
-    document.getElementById(id+"-close").disabled = false;
+    document.getElementById(id+"-"+uniqueId+"-close").disabled = false;
 }
 
 function sendAlarmClose(id) {
@@ -1119,6 +1170,10 @@ window.addEventListener('resize', function () {
 
         outlineDOM.style.width = containerDOM.getBoundingClientRect().width / 5;
         outlineDOM.style.height = containerDOM.getBoundingClientRect().height / 5;
+    }
+
+    if(openNotifyMenu) {
+        openNotifyMenu.style.left = (document.getElementById(notificationContainer).clientWidth) ? document.getElementById(notificationContainer).clientWidth + 20 : 20;
     }
 });
 
@@ -1308,16 +1363,28 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
     }, 100);
 
+    var data = {
+        type: 'alarm',
+        entityId: Math.floor(Math.random() * 10),
+        value: Math.random() * 50,
+        message: "This one is kinda long so it should take more space. This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),
+        creationTime: Date.now(),
+        alarmType: 'danger'
+    };
+    handleNotifications(data);
+
     setInterval(() => {
+        var types = ['danger', 'warning', 'info', ''];
+
         var data = {
             type: 'alarm',
             entityId: Math.floor(Math.random() * 10),
             value: Math.random() * 50,
             message: "This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),
             creationTime: Date.now(),
-            alarmType: 'danger'
+            alarmType: types[Math.floor(Math.random()*4)]
         };
-        handleAlarms(data);
+        handleNotifications(data);
     }, 5000);
 }
 
@@ -1342,7 +1409,7 @@ function monthName(month, short) {
 }
 
 function toasterTime(timestamp) {
-    return new Date(timestamp).getDay() + ' ' +
+    return new Date(timestamp).getDate() + ' ' +
         monthName(new Date(timestamp).getMonth()) + ' ' +
         new Date(timestamp).getFullYear() + ' at ' +
         new Date(timestamp).toLocaleTimeString()

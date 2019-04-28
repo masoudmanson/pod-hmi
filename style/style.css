@@ -91,6 +91,16 @@
     cursor: pointer;
 }
 
+#notificationContainer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    padding: 12px 20px;
+    width: calc(40% + 20px);
+    max-width: calc(30vw + 30px);
+}
+
 /**
  * ----------------------------------------
  * animation rotate-center

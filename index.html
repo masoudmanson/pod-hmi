@@ -23,6 +23,7 @@
     <div id="outlineContainer"></div>
     <div id="statusContainer"></div>
 </div>
+<div id="notificationContainer"></div>
 
 <script type="text/javascript">
     (function () {
@@ -50,16 +51,18 @@
                 },
                 theme: 'light'
             },
-            alarms: {
-                duration: 5000,
-                autoClose: false,
-                closeBtn: true,
-                positionHorizontal: 'left',
-                positionVertical: 'bottom'
-            },
             graphContainer: 'podGraph',
             outlineContainer: 'outlineContainer',
             statusContainer: 'statusContainer',
+            notificationContainer: 'notificationContainer',
+            notificationOptions: {
+                enable: true,
+                duration: 5000,
+                autoClose: false,
+                closeBtn: false,
+                positionHorizontal: 'left',
+                positionVertical: 'bottom'
+            },
             renderingPitch: 'high', // high, medium or low
             numbersRoundPrecision: 2 // round numbers to at most 2 decimal places ( 2.325241 => 2.32 )
         });

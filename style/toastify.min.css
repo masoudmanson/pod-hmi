@@ -13,18 +13,22 @@
  */
 .toastify {
     padding: 12px 20px;
-    color: #fff;
+    color: #444;
     display: inline-block;
-    box-shadow: 0 3px 6px -1px rgba(0, 0, 0, .12), 0 10px 36px -4px rgba(77, 96, 232, .3);
-    background: -webkit-linear-gradient(to left, #444, #212121);
-    background: linear-gradient(to left, #444, #212121);
+    box-shadow: 0 3px 6px -1px rgba(0, 0, 0, .12), 0 10px 20px -4px rgba(77, 96, 232, .15);
+    /*background: -webkit-linear-gradient(to left, #444, #212121);*/
+    /*background: linear-gradient(to left, #444, #212121);*/
+    background-color: #fff;
+    background: #fff;
     position: fixed;
     opacity: 0;
     transition: all .4s cubic-bezier(.215, .61, .355, 1);
     border-radius: 2px;
+    border-left: solid 10px #999;
     cursor: pointer;
     text-decoration: none;
-    max-width: calc(40% - 20px);
+    width: calc(40% - 20px);
+    max-width: 30vw;
     font-size: 1em;
     font-weight: 300;
     z-index: 2147483647
@@ -73,12 +77,12 @@
 }
 
 .toastify-button {
-    border: solid 1px #fff;
+    border: solid 1px #444;
     -webkit-border-radius: 2px;
     -moz-border-radius: 2px;
     border-radius: 2px;
     padding: 4px 8px;
-    color: #fff;
+    color: #444;
     background: transparent;
     background-color: transparent;
     margin: 10px 0 0 5px;
@@ -92,14 +96,15 @@
 }
 
 .toastify-button:hover {
-    background-color: white;
-    color: #222;
+    background-color: #444;
+    border-color: #444;
+    color: #fff;
 }
 
 .toastify-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    color: #fff;
+    color: #444;
     background: transparent;
     background-color: transparent;
 }
@@ -110,22 +115,31 @@
     float: left;
 }
 
+.toastify-type {
+    font-size: 0.7em;
+    opacity: 0.6;
+    float: right;
+}
+
 .toastify-warning {
-    background-color: #ffc427;
-    background: -webkit-linear-gradient(to left, #ffc427, #f76f1c);
-    background: linear-gradient(to left, #ffc427, #f76f1c);
+    /*background-color: #ffc427;*/
+    /*background: -webkit-linear-gradient(to left, #ffc427, #f76f1c);*/
+    /*background: linear-gradient(to left, #ffc427, #f76f1c);*/
+    border-left-color: #ffc427;
+    color: #444;
 }
 
 .toastify-danger {
-    background-color: #d21249;
-    background: -webkit-linear-gradient(to left, #d21249, #f71c20);
-    background: linear-gradient(to left, #d21249, #f71c20);
+    border-left-color: #d21249;
+    color: #444;
 }
 
 .toastify-info {
-    background-color: #27aaff;
-    background: -webkit-linear-gradient(to left, #27aaff, #1c3cf7);
-    background: linear-gradient(to left, #27aaff, #1c3cf7);
+    /*background-color: #27aaff;*/
+    /*background: -webkit-linear-gradient(to left, #27aaff, #1c3cf7);*/
+    /*background: linear-gradient(to left, #27aaff, #1c3cf7);*/
+    border-left-color: #27aaff;
+    color: #444;
 }
 
 @media only screen and (max-width: 360px) {
