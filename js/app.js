@@ -76,12 +76,7 @@ function initAsync(params) {
          * map would be updated all the time
          */
         var content = JSON.parse(msg.content);
-
-        if (content.type.toLowerCase() == 'alarm') {
-            handleNotifications(content);
-        } else {
-            asyncData[content.entityId] = content;
-        }
+        asyncData[content.entityId] = content;
     });
 
     /**
@@ -417,13 +412,15 @@ function main(params) {
 
         /**
          * For Mockup Tests
+         * TODO : Remove at production mode
          */
-        updateMap();
+        // updateMap();
         // fakeDataGenerator();
-        pitchInterval && clearInterval(pitchInterval);
-        pitchInterval = setInterval(function () {
-            renderLiveDataOnMapWithPitch(asyncData);
-        }, renderingPitch * 1000);
+        // pitchInterval && clearInterval(pitchInterval);
+        // pitchInterval = setInterval(function () {
+        //     console.log({asyncData});
+        //     renderLiveDataOnMapWithPitch(asyncData);
+        // }, renderingPitch * 1000);
     }
 }
 
@@ -526,13 +523,12 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
 
 function renderLiveDataOnMapWithPitch(content) {
     var model = graph.getModel();
-
     model.beginUpdate();
 
     for (var key in content) {
         var entityId = content[key].entityId,
-            value = content[key].value,
-            type = content[key].type;
+            value = content[key].value || 0,
+            type = content[key].entityType || "";
 
         if (type.toLowerCase() == 'alarm') {
             console.log('Alarm received', content[key]);
@@ -1086,6 +1082,7 @@ function updateMap() {
 }
 
 function handleNotifications(alarm) {
+    return;
     var uniqueId = new Date().getTime();
 
     Toastify({
@@ -1184,7 +1181,7 @@ window.addEventListener('resize', function () {
 function fakeDataGenerator() {
     setInterval(function () {
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '16',
             value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
@@ -1193,7 +1190,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '17',
             value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
@@ -1202,7 +1199,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '36',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1211,7 +1208,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '37',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1220,7 +1217,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '32',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1228,7 +1225,7 @@ function fakeDataGenerator() {
 
         asyncData[data.entityId] = data;
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '33',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1237,7 +1234,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '34',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1246,7 +1243,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '35',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1255,7 +1252,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '22',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1264,7 +1261,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '23',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1273,7 +1270,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '10',
             value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
@@ -1282,7 +1279,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '20',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1291,7 +1288,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '21',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1300,7 +1297,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '11',
             value: Math.floor(Math.random() * 30),
             creationTime: Date.now()
@@ -1309,7 +1306,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '12',
             value: Math.random() * 2,
             creationTime: Date.now()
@@ -1318,7 +1315,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '13',
             value: Math.random() * 2,
             creationTime: Date.now()
@@ -1327,7 +1324,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '24',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1336,7 +1333,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '25',
             value: Math.floor(Math.random() * 2),
             creationTime: Date.now()
@@ -1345,7 +1342,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '14',
             value: Math.random() * 50,
             creationTime: Date.now()
@@ -1354,7 +1351,7 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
 
         var data = {
-            type: 'tag',
+            entityType: 'tag',
             entityId: '15',
             value: Math.random() * 50,
             creationTime: Date.now()
@@ -1364,7 +1361,7 @@ function fakeDataGenerator() {
     }, 100);
 
     var data = {
-        type: 'alarm',
+        entityType: 'alarm',
         entityId: Math.floor(Math.random() * 10),
         value: Math.random() * 50,
         message: "This one is kinda long so it should take more space. This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),
@@ -1377,7 +1374,7 @@ function fakeDataGenerator() {
         var types = ['danger', 'warning', 'info', ''];
 
         var data = {
-            type: 'alarm',
+            entityType: 'alarm',
             entityId: Math.floor(Math.random() * 10),
             value: Math.random() * 50,
             message: "This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),

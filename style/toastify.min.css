@@ -24,11 +24,11 @@
     opacity: 0;
     transition: all .4s cubic-bezier(.215, .61, .355, 1);
     border-radius: 2px;
-    border-left: solid 10px #999;
+    border-left: solid 10px #666;
     cursor: pointer;
     text-decoration: none;
     width: calc(40% - 20px);
-    max-width: 30vw;
+    max-width: 25vw;
     font-size: 1em;
     font-weight: 300;
     z-index: 2147483647
@@ -77,12 +77,12 @@
 }
 
 .toastify-button {
-    border: solid 1px #444;
+    border: solid 1px #666;
     -webkit-border-radius: 2px;
     -moz-border-radius: 2px;
     border-radius: 2px;
     padding: 4px 8px;
-    color: #444;
+    color: #666;
     background: transparent;
     background-color: transparent;
     margin: 10px 0 0 5px;
@@ -96,15 +96,15 @@
 }
 
 .toastify-button:hover {
-    background-color: #444;
-    border-color: #444;
+    background-color: #666;
+    border-color: #666;
     color: #fff;
 }
 
 .toastify-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    color: #444;
+    color: #666;
     background: transparent;
     background-color: transparent;
 }
@@ -125,12 +125,12 @@
     /*background-color: #ffc427;*/
     /*background: -webkit-linear-gradient(to left, #ffc427, #f76f1c);*/
     /*background: linear-gradient(to left, #ffc427, #f76f1c);*/
-    border-left-color: #ffc427;
+    border-left-color: orange;
     color: #444;
 }
 
 .toastify-danger {
-    border-left-color: #d21249;
+    border-left-color: red;
     color: #444;
 }
 
