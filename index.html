@@ -2,14 +2,13 @@
 
 <head>
     <title>Fanitoring Realtime HMI Viewer</title>
-    <link rel="shortcut icon" href="http://172.16.110.26/poddraw/webapp/favicon.ico">
+    <link rel="shortcut icon" href="http://185.104.229.164:12568/poddraw/webapp/favicon.ico">
 
     <link rel="stylesheet" href="style/style.css">
-    <link rel="stylesheet" href="style/toastify.min.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
 
     <script type="text/javascript">
-        POD_DRAW_URL = 'http://172.16.110.26/poddraw/webapp';
+        POD_DRAW_URL = 'http://185.104.229.164:12568/poddraw/webapp';
     </script>
 
     <script type="text/javascript" src="js/podasync.min.js"></script>
@@ -19,11 +18,11 @@
 </head>
 
 <body>
+<div id="notificationContainer"></div>
 <div id="podGraph">
     <div id="outlineContainer"></div>
     <div id="statusContainer"></div>
 </div>
-<div id="notificationContainer"></div>
 
 <script type="text/javascript">
     (function () {
@@ -36,6 +35,7 @@
             protocolParams: {
                 socketAddress: 'ws://172.16.110.20:8003/ws',
                 serverName: 'fanitoring-process',
+                peerId: 1736993,
                 reconnectOnClose: true,
                 connectionCheckTimeout: 10000,
                 serverRegisteration: true,
@@ -45,10 +45,11 @@
             },
             map: {
                 type: 'file',
-                data: {
-                    light: 'maps/fanitoring-light.xml',
-                    dark: 'maps/fanitoring-dark.xml'
-                },
+                data: 'maps/Fanitoring-Demo.xml',
+//                data: {
+//                    light: 'maps/fanitoring-light.xml',
+//                    dark: 'maps/fanitoring-dark.xml'
+//                },
                 theme: 'light'
             },
             graphContainer: 'podGraph',
@@ -61,7 +62,7 @@
                 autoClose: false,
                 closeBtn: false,
                 positionHorizontal: 'left',
-                positionVertical: 'bottom'
+                positionVertical: 'top'
             },
             renderingPitch: 'high', // high, medium or low
             numbersRoundPrecision: 2 // round numbers to at most 2 decimal places ( 2.325241 => 2.32 )

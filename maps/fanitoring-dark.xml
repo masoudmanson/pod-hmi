@@ -1,4 +1,4 @@
-<mxGraphModel dx="47" dy="67" grid="0" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1366" pageHeight="768" background="#1A1A1A" math="0" shadow="0">
+<mxGraphModel dx="1426" dy="810" grid="0" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1366" pageHeight="768" background="#1A1A1A" math="0" shadow="0">
     <root>
         <mxCell id="pQwXmXWKDxqnGFmUTbyM-0"/>
         <mxCell id="pQwXmXWKDxqnGFmUTbyM-1" parent="pQwXmXWKDxqnGFmUTbyM-0"/>
@@ -490,7 +490,7 @@
         <mxCell id="AvLMZVfDbVffEa3yWYDx-145" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeWidth=1;fillColor=#f5f5f5;strokeColor=#999999;gradientColor=#b3b3b3;" parent="pQwXmXWKDxqnGFmUTbyM-1" vertex="1">
             <mxGeometry x="686.8653061224489" y="595.0238095238095" width="36.224489795918366" height="36.224489795918366" as="geometry"/>
         </mxCell>
-        <object label="" type="led" entityId="25" breakPoints="0:#e8e8e8, 1:#00ff00" tooltip="FAN101_ON" id="AvLMZVfDbVffEa3yWYDx-146">
+        <object label="" type="led" entityId="25" breakPoints="0:#e8e8e8, 1:#00ff00, 2:red" tooltip="FAN101_ON" animation="rotate" rotateDirection="cw" rotateBreakPoints="0:0,1:1,2:3" id="AvLMZVfDbVffEa3yWYDx-146">
             <mxCell style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.bardsir.fan;fontFamily=Helvetica;fontSize=12;fontColor=#000000;strokeColor=#666666;fillColor=#E8E8E8;gradientColor=none;" parent="pQwXmXWKDxqnGFmUTbyM-1" vertex="1">
                 <mxGeometry x="688.9775510204082" y="598.3" width="32" height="30" as="geometry"/>
             </mxCell>

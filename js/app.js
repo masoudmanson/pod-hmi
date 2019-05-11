@@ -20,13 +20,15 @@ var graph,
     asyncData = {},
     notifications = [],
     asyncStatus = false,
+    asyncPingInterval,
     numbersRoundPrecision,
     httpAjaxRequestInterval,
     protocolType,
     protocolParams,
     toasterParams = {},
     notificationMenuOpen = null,
-    openNotifyMenu;
+    refreshingMap = false,
+    pages = [];
 
 var cw, ch,
     margin = 50,
@@ -37,12 +39,12 @@ var containerDOM, outlineDOM, statusDOM;
 /**
  * Extending Array push
  */
-notifications.push = function () {
+notifications.push = function() {
     // var element = document.getElementById(notificationContainer);
     // element.insertBefore(arguments[0], element.firstChild);
     // Toastify.reposition();
-    return Array.prototype.push.apply(this,arguments);
-}
+    return Array.prototype.push.apply(this, arguments);
+};
 
 /**
  * Async Functions
@@ -59,7 +61,7 @@ function initAsync(params) {
      * Whenever your Async connection gets asyncReady
      * you would be abale to send messages through
      */
-    asyncClient.on('asyncReady', function () {
+    asyncClient.on('asyncReady', function() {
         updateMap();
         primaryHandshake();
     });
@@ -69,21 +71,32 @@ function initAsync(params) {
      * @param   {string}    msg     Received Message From Async
      * @param   {function}  ack     Callback function responsible of returning acknowledgements
      */
-    asyncClient.on('message', function (msg, ack) {
+    asyncClient.on('message', function(msg, ack) {
         /**
          * HMI map should be updated whenever some new
          * messages come from async gate so that the
          * map would be updated all the time
          */
+
         var content = JSON.parse(msg.content);
-        asyncData[content.entityId] = content;
+
+        switch(content.type) {
+            case 14:
+                asyncData[content.entityId] = JSON.parse(JSON.parse(content.content));
+                break;
+
+            default:
+                break;
+        }
+
+        console.log(asyncData);
     });
 
     /**
      * To show Async Status, we need to get state changes of
      * async connection and display the state on the page
      */
-    asyncClient.on('stateChange', function (state) {
+    asyncClient.on('stateChange', function(state) {
         switch (state.socketState) {
             case 0:
                 asyncStatus = false;
@@ -94,6 +107,7 @@ function initAsync(params) {
 
             case 1:
                 asyncStatus = true;
+                asyncPing();
 
                 /**
                  * Rerender Map only if async is connected
@@ -102,7 +116,7 @@ function initAsync(params) {
                  */
                 pitchInterval && clearInterval(pitchInterval);
 
-                pitchInterval = setInterval(function () {
+                pitchInterval = setInterval(function() {
                     renderLiveDataOnMapWithPitch(asyncData);
                 }, renderingPitch * 1000);
 
@@ -113,7 +127,9 @@ function initAsync(params) {
 
             case 2:
                 asyncStatus = false;
-                // pitchInterval && clearInterval(pitchInterval);
+                pitchInterval && clearInterval(pitchInterval);
+                asyncPingInterval && clearInterval(asyncPingInterval);
+
                 document.getElementById('toolbar-async').innerText = 'Async: Closing';
                 document.getElementById('toolbar-async').style.background = 'orange';
                 document.getElementById('toolbar-async').style.color = 'white';
@@ -121,7 +137,9 @@ function initAsync(params) {
 
             case 3:
                 asyncStatus = false;
-                // pitchInterval && clearInterval(pitchInterval);
+                pitchInterval && clearInterval(pitchInterval);
+                asyncPingInterval && clearInterval(asyncPingInterval);
+
                 document.getElementById('toolbar-async').innerText = 'Async: Not Connected';
                 document.getElementById('toolbar-async').style.background = 'red';
                 document.getElementById('toolbar-async').style.color = 'white';
@@ -145,16 +163,16 @@ function sendAsyncMessage(msg) {
 function initHttp(params) {
     updateMap();
 
-    httpAjaxRequestInterval = setInterval(function () {
+    httpAjaxRequestInterval = setInterval(function() {
         let xhr = new XMLHttpRequest();
         xhr.open(params.method, params.url + '&rand=' + Math.random());
         xhr.send();
-        xhr.onerror = function () {
+        xhr.onerror = function() {
             document.getElementById('toolbar-lastUpdate').innerText = 'Error at ' + new Date().toLocaleTimeString();
             document.getElementById('toolbar-lastUpdate').style.background = 'red';
             document.getElementById('toolbar-lastUpdate').style.color = 'white';
-        }
-        xhr.onload = function () {
+        };
+        xhr.onload = function() {
             if (xhr.status != 200) {
                 console.error(`Error ${xhr.status}: ${xhr.statusText}`);
 
@@ -186,6 +204,19 @@ function primaryHandshake() {
     };
 
     sendAsyncMessage(data);
+}
+
+function asyncPing() {
+    asyncPingInterval && clearInterval(asyncPingInterval);
+
+    asyncPingInterval = setInterval(function() {
+        var data = {
+            type: 12,
+            content: ''
+        };
+
+        sendAsyncMessage(data);
+    }, 20000);
 }
 
 function getMapsList() {
@@ -239,7 +270,7 @@ function main(params) {
                 protocolType = params.protocol;
             }
 
-            if(typeof params.protocolParams == 'object') {
+            if (typeof params.protocolParams == 'object') {
                 protocolParams = params.protocolParams;
             }
 
@@ -298,11 +329,11 @@ function main(params) {
                 }
             }
 
-            if(typeof params.notificationOptions == 'object') {
+            if (typeof params.notificationOptions == 'object') {
                 toasterParams = params.notificationOptions;
                 notificationMenuOpen = params.notificationOptions.enable || false;
 
-                if(!notificationMenuOpen) {
+                if (!notificationMenuOpen) {
                     document.getElementById(notificationContainer).style.display = 'none';
                 }
             }
@@ -323,18 +354,53 @@ function main(params) {
         }
 
         graph = createGraph(containerDOM, statusDOM, outlineDOM);
+        graph.setHtmlLabels(true);
+
+        // graph.getModel().addListener(mxEvent.CHANGE, function(sender, evt){
+        //     graph.getModel().beginUpdate();
+        //     evt.consume();
+        //     try {
+        //     } finally {
+        //         graph.getModel().endUpdate();
+        //         graph.refresh();
+        //     }
+        // });
 
         graph.addMouseListener({
-            mouseDown: function (sender, evt) {
-                if (typeof evt.sourceState == 'object' && MAP_CALLBACKS.hasOwnProperty(evt.sourceState.cell.id)) {
-                    eval(MAP_CALLBACKS[evt.sourceState.cell.id]);
+            mouseDown: function(sender, evt) {
+                if (typeof evt.sourceState == 'object') {
+                    var cell = evt.state.cell;
+                    var pageLink = cell.getAttribute('link');
+
+                    if (pageLink) {
+                        if (pageLink.substring(0, 13) == 'data:page/id,') {
+                            var comma = pageLink.indexOf(',');
+                            var pageId = pageLink.substring(comma + 1);
+
+                            for (var i = 0; i < pages.length; i++) {
+                                if (pages[i].id == pageId) {
+                                    changeMap({type: 'text', data: pages[i].data});
+                                }
+                            }
+                        }
+                    }
+
+                    if (MAP_CALLBACKS.hasOwnProperty(evt.sourceState.cell.id)) {
+                        return Function('"use strict";return (' + MAP_CALLBACKS[evt.sourceState.cell.id] + ')')();
+                    }
                 }
             },
-            mouseMove: function (sender, evt) {
+            mouseMove: function(sender, evt) {
             },
-            mouseUp: function (sender, evt) {
+            mouseUp: function(sender, evt) {
             }
         });
+
+        // Render animations again on map resize or move
+        graph.sizeDidChange = function() {
+            // TODO: Check if this is neccessary or what?!
+            // renderLiveDataOnMapWithPitch(asyncData);
+        };
 
         graph.getModel()
             .beginUpdate();
@@ -417,8 +483,7 @@ function main(params) {
         // updateMap();
         // fakeDataGenerator();
         // pitchInterval && clearInterval(pitchInterval);
-        // pitchInterval = setInterval(function () {
-        //     console.log({asyncData});
+        // pitchInterval = setInterval(function() {
         //     renderLiveDataOnMapWithPitch(asyncData);
         // }, renderingPitch * 1000);
     }
@@ -435,10 +500,9 @@ function createGraphFromXmlFile(graph, filename) {
 
         case 'mxfile':
             var childNodes = mxUtils.getChildNodes(root);
-            var diagrams = [];
+
             for (var n in childNodes) {
                 var data = mxUtils.getTextContent(childNodes[n]);
-
                 try {
                     data = atob(data);
                 }
@@ -464,12 +528,15 @@ function createGraphFromXmlFile(graph, filename) {
                 }
 
                 if (data.length > 0) {
-                    diagrams.push(data);
+                    pages.push({
+                        id: childNodes[n].id,
+                        name: childNodes[n].getAttribute('name'),
+                        data: data
+                    });
                 }
             }
 
-            //TODO pagination between maps
-            var doc = mxUtils.parseXml(diagrams[0]);
+            var doc = mxUtils.parseXml(pages[0].data);
             var dec = new mxCodec(doc);
             dec.decode(doc.documentElement, graph.getModel());
 
@@ -502,9 +569,10 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
         if (protocolType == 'http') {
             addToolbarButton(graph, toolbarContainer, 'lastUpdate', 'Initializing ...', '', false);
         }
-        if(notificationContainer) {
+        if (notificationContainer) {
             addToolbarButton(graph, toolbarContainer, 'notifications', (notificationMenuOpen) ? 'Notifications: On' : 'Notifications: Off', '', false);
         }
+        addToolbarButton(graph, toolbarContainer, 'mainPage', '', 'style/img/home.svg', false);
         addToolbarButton(graph, toolbarContainer, 'zoomIn', '', 'style/img/zoom-in.svg', false);
         addToolbarButton(graph, toolbarContainer, 'zoomOut', '', 'style/img/zoom-out.svg', false);
         addToolbarButton(graph, toolbarContainer, 'actualSize', '', 'style/img/full-size.svg', false);
@@ -512,9 +580,8 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
         if (typeof mapData.data == 'object') {
             addToolbarButton(graph, toolbarContainer, 'theme', '', 'style/img/theme.svg', false);
         }
-        // addToolbarButton(graph, toolbarContainer, 'getMaps', 'Get Maps List', '', false);
     }
-    graph.dblClick = function (evt, cell) {
+    graph.dblClick = function(evt, cell) {
         graph.zoomIn();
     };
 
@@ -522,182 +589,264 @@ function createGraph(graphContainer, toolbarContainer, outlineContainer) {
 }
 
 function renderLiveDataOnMapWithPitch(content) {
-    var model = graph.getModel();
-    model.beginUpdate();
+    if (!refreshingMap) {
+        var model = graph.getModel();
+        model.beginUpdate();
 
-    for (var key in content) {
-        var entityId = content[key].entityId,
-            value = content[key].value || 0,
-            type = content[key].entityType || "";
+        for (var key in content) {
+            var entityId = content[key].entityId,
+                value = content[key].value || 0,
+                type = content[key].entityType || '';
 
-        if (type.toLowerCase() == 'alarm') {
-            console.log('Alarm received', content[key]);
-            handleNotifications(content[key]);
-        } else {
-            if (DYNAMIC_CELLS[entityId]) {
-                for (var i = 0; i < DYNAMIC_CELLS[entityId].length; i++) {
-                    switch (DYNAMIC_CELLS[entityId][i].type) {
+            if (type.toLowerCase() == 'alarm') {
+                handleNotifications(content[key]);
+            }
+            else {
+                if (DYNAMIC_CELLS[entityId]) {
+                    for (var i = 0; i < DYNAMIC_CELLS[entityId].length; i++) {
+                        switch (DYNAMIC_CELLS[entityId][i].type) {
 
-                        case 'visibility':
-                            try {
-                                var vis = DYNAMIC_CELLS[entityId][i],
-                                    cell = vis.cell,
-                                    visOpacities = vis.opacities,
-                                    visValues = vis.values;
+                            case 'visibility':
+                                try {
+                                    var vis = DYNAMIC_CELLS[entityId][i],
+                                        cell = vis.cell,
+                                        visOpacities = vis.opacities,
+                                        visValues = vis.values;
 
-                                visValueIndex = visValues.indexOf(parseInt(value));
-                                var opacity = visOpacities[visValueIndex];
-                            }
-                            catch (e) {
-                                console.error(e);
-                            }
-                            finally {
-                                // graph.getModel().setVisible(cell, value);
-                                graph.setCellStyles(mxConstants.STYLE_OPACITY, opacity, [cell]);
-                            }
-                            break;
-
-                        case 'led':
-                            try {
-                                var led = DYNAMIC_CELLS[entityId][i],
-                                    cell = led.cell,
-                                    ledColors = led.colors,
-                                    ledValues = led.values;
-
-                                ledValueIndex = ledValues.indexOf(parseInt(value));
-                                var color = ledColors[ledValueIndex];
-                            }
-                            catch (e) {
-                                console.error(e);
-                            }
-                            finally {
-                                graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, [cell]);
-                                // graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, color, [cell]);
-                            }
-                            break;
-
-                        case 'progress_bar':
-                            try {
-                                var progressBar = DYNAMIC_CELLS[entityId][i],
-                                    cell = progressBar.cell,
-                                    cellOrientation = progressBar.cellOrientation;
-                            }
-                            catch (e) {
-                                console.error(e);
-                            }
-                            finally {
-                                var cellGeometry = cell.getGeometry();
-
-                                if (cellOrientation == 'vertical') {
-                                    cellGeometry.height = parseInt(value / progressBar.valueRatio);
-                                    cellGeometry.y = progressBar.endPoint.y - parseInt(value / progressBar.valueRatio);
+                                    visValueIndex = visValues.indexOf(parseInt(value));
+                                    var opacity = visOpacities[visValueIndex];
                                 }
-                                else {
-                                    cellGeometry.width = parseInt(value / progressBar.valueRatio);
+                                catch (e) {
+                                    console.error(e);
                                 }
+                                finally {
+                                    // graph.getModel().setVisible(cell, value);
+                                    graph.setCellStyles(mxConstants.STYLE_OPACITY, opacity, [cell]);
+                                }
+                                break;
 
-                                var color = progressBar.progressBarColors[0];
+                            case 'led':
+                                try {
+                                    var led = DYNAMIC_CELLS[entityId][i],
+                                        cell = led.cell,
+                                        ledColors = led.colors,
+                                        ledValues = led.values;
 
-                                for (var k = 0; k < progressBar.progressBarStops.length; k++) {
-                                    if (value > progressBar.progressBarStops[k]) {
-                                        color = progressBar.progressBarColors[k];
+                                    ledValueIndex = ledValues.indexOf(parseInt(value));
+                                    var color = ledColors[ledValueIndex];
+                                }
+                                catch (e) {
+                                    console.error(e);
+                                }
+                                finally {
+                                    graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, [cell]);
+                                }
+                                break;
+
+                            case 'progress_bar':
+                                try {
+                                    var progressBar = DYNAMIC_CELLS[entityId][i],
+                                        cell = progressBar.cell,
+                                        cellOrientation = progressBar.cellOrientation;
+                                }
+                                catch (e) {
+                                    console.error(e);
+                                }
+                                finally {
+                                    var cellGeometry = cell.getGeometry();
+
+                                    if (cellOrientation == 'vertical') {
+                                        cellGeometry.height = parseInt(value / progressBar.valueRatio);
+                                        cellGeometry.y = progressBar.endPoint.y - parseInt(value / progressBar.valueRatio);
                                     }
                                     else {
-                                        color = progressBar.progressBarColors[k - 1];
-                                        break;
+                                        cellGeometry.width = parseInt(value / progressBar.valueRatio);
+                                    }
+
+                                    var color = progressBar.progressBarColors[0];
+
+                                    for (var k = 0; k < progressBar.progressBarStops.length; k++) {
+                                        if (value > progressBar.progressBarStops[k]) {
+                                            color = progressBar.progressBarColors[k];
+                                        }
+                                        else {
+                                            color = progressBar.progressBarColors[k - 1];
+                                            break;
+                                        }
+                                    }
+
+                                    graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, [cell]);
+                                }
+                                break;
+
+                            case 'speedometer':
+                                try {
+                                    var speedometer = DYNAMIC_CELLS[entityId][i],
+                                        cell = speedometer.cell;
+                                }
+                                catch (e) {
+                                    console.error(e);
+                                }
+                                finally {
+                                    var cellGeometry = cell.getGeometry();
+
+                                    var angel = ((value - speedometer.previousValue) *
+                                        speedometer.angel) / speedometer.maxValue -
+                                        speedometer.minValue;
+
+                                    cellGeometry.rotate(angel, cellGeometry.sourcePoint);
+
+                                    DYNAMIC_CELLS[entityId][i].previousValue = value;
+                                    graph.getView()
+                                        .clear(cell, false, false);
+                                    graph.getView()
+                                        .validate();
+
+                                    // var state = graph.view.getState(cell);
+                                    //
+                                    // if (state) {
+                                    //     var cssStyle = `
+                                    //         transform-origin: ${state.origin.x}px ${state.origin.y}px;
+                                    //         -webkit-transform: rotate(${angel}deg);
+                                    //         transform: rotate(${angel}deg);
+                                    //     `;
+                                    //
+                                    //     var edit = new mxCellAttributeChange(cell, 'style', cssStyle);
+                                    //     graph.model.execute(edit);
+                                    //
+                                    //     graph.getView().clear(cell, false, false);
+                                    //     graph.getView().validate();
+                                    //
+                                    //     // Pure Javascript
+                                    //     // state.shape.node.firstChild.classList.add('rotate-center-' + uniqueId);
+                                    // }
+                                }
+                                break;
+
+                            default:
+                                try {
+                                    var customNode = DYNAMIC_CELLS[entityId][i],
+                                        cell = customNode.cell,
+                                        unit = customNode.unit || '';
+
+                                    var label = cell.getAttribute('label');
+                                    var newValue = Math.round(value * Math.pow(10, numbersRoundPrecision)) / Math.pow(10, numbersRoundPrecision) + ' ' + unit;
+
+                                    if (label.indexOf('<') != -1) {
+                                        var regex = /[>]([^<\n]+?)[<]/gm;
+                                        var result = label.match(regex);
+
+                                        if (result.length == 1) {
+                                            var newLabel = label.replace(new RegExp(regex), '>' + newValue.toString() + '<');
+                                            // cell.value.setAttribute('label', mim);
+                                            var edit = new mxCellAttributeChange(cell, 'label', newLabel);
+                                            graph.model.execute(edit);
+                                        }
+                                        else {
+                                            var start = label.indexOf(result[0]);
+                                            var end = label.indexOf(result[result.length - 1]);
+                                            var newLabel = label.substr(0, start + 1) + newValue.toString() +
+                                                label.substring(end + result[result.length - 1].length - 1, label.length);
+                                            // cell.value.setAttribute('label', newLabel);
+                                            var edit = new mxCellAttributeChange(cell, 'label', newLabel);
+                                            graph.model.execute(edit);
+                                        }
+                                    }
+                                    else {
+                                        // cell.value.setAttribute('label', newValue);
+                                        var edit = new mxCellAttributeChange(cell, 'label', newValue);
+                                        graph.model.execute(edit);
                                     }
                                 }
+                                catch (e) {
+                                    console.error(e);
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+        }
 
-                                graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, [cell]);
-                            }
-                            break;
+        model.endUpdate();
 
-                        case 'speedometer':
-                            try {
-                                var speedometer = DYNAMIC_CELLS[entityId][i],
-                                    cell = speedometer.cell;
-                            }
-                            catch (e) {
-                                console.error(e);
-                            }
-                            finally {
-                                var cellGeometry = cell.getGeometry();
+        for (var key in content) {
+            var entityId = content[key].entityId,
+                value = content[key].value || 0,
+                type = content[key].entityType || '';
 
-                                var angel = ((value - speedometer.previousValue) *
-                                    speedometer.angel) / speedometer.maxValue -
-                                    speedometer.minValue;
+            if (MAP_ANIMATIONS[entityId]) {
+                for (var i = 0; i < MAP_ANIMATIONS[entityId].length; i++) {
+                    switch (MAP_ANIMATIONS[entityId][i].type) {
+                        case 'rotate':
+                            valueIndex = MAP_ANIMATIONS[entityId][i].values.indexOf(parseInt(value));
+                            var speed = (valueIndex != -1) ? parseFloat(MAP_ANIMATIONS[entityId][i].speeds[valueIndex]) : 0;
+                            var direction = (MAP_ANIMATIONS[entityId][i].direction) ? MAP_ANIMATIONS[entityId][i].direction : 'cw';
 
-                                cellGeometry.rotate(angel, cellGeometry.sourcePoint);
+                            var state = graph.view.getState(MAP_ANIMATIONS[entityId][i].cell);
+                            if (state) {
+                                var uniqueId = state.cell.id;
+                                var oldStyle = document.getElementById(uniqueId);
+                                if (oldStyle) {
+                                    oldStyle.parentNode.removeChild(oldStyle);
+                                }
 
-                                DYNAMIC_CELLS[entityId][i].previousValue = value;
+                                if (speed) {
+                                    var style = document.createElement('style');
+                                    style.setAttribute('id', uniqueId);
+                                    style.type = 'text/css';
+                                    style.innerHTML = `.rotate-center-${uniqueId} {
+                                    transform-origin: ${state.x + state.width / 2}px ${state.y + state.height / 2}px;
+                                    -webkit-animation: rotate-${direction} ${1 / speed}s linear infinite;
+                                    animation: rotate-${direction} ${1 / speed}s linear infinite;
+                                }`;
+                                    document.getElementsByTagName('head')[0].appendChild(style);
+
+                                    // Pure Javascript
+                                    state.shape.node.firstChild.classList.add('rotate-center-' + uniqueId);
+
+                                    // MxGraph approach
+                                    // var edit = new mxCellAttributeChange(state.shape.node.firstChild, 'class', 'rotate-center-' + uniqueId);
+                                    // model.execute(edit);
+                                }
+                                else {
+                                    state.shape.node.firstChild.classList.remove('rotate-center-' + uniqueId);
+                                }
                             }
                             break;
 
                         default:
-                            try {
-                                var customNode = DYNAMIC_CELLS[entityId][i],
-                                    cell = customNode.cell,
-                                    unit = customNode.unit || '';
-
-                                var label = cell.getAttribute('label');
-                                var newValue = Math.round(value * Math.pow(10, numbersRoundPrecision)) / Math.pow(10, numbersRoundPrecision) + ' ' + unit;
-
-                                if (label.indexOf('<') != -1) {
-                                    var regex = /[>]([^<\n]+?)[<]/gm;
-                                    var result = label.match(regex);
-
-                                    if (result.length == 1) {
-                                        var mim = label.replace(new RegExp(regex), '>' + newValue.toString() + '<');
-                                        cell.value.setAttribute('label', mim);
-                                    }
-                                    else {
-                                        var start = label.indexOf(result[0]);
-                                        var end = label.indexOf(result[result.length - 1]);
-                                        var newLabel = label.substr(0, start + 1) + newValue.toString() +
-                                            label.substring(end + result[result.length - 1].length - 1, label.length);
-                                        cell.value.setAttribute('label', newLabel);
-                                    }
-                                }
-                                else {
-                                    cell.value.setAttribute('label', newValue);
-                                }
-                            }
-                            catch (e) {
-                                console.error(e);
-                            }
                             break;
                     }
                 }
             }
         }
-        // if(MAP_ANIMATIONS[entityId]) {
-        //     for (var i = 0; i < MAP_ANIMATIONS[entityId].length; i++) {
-        //         console.log("Do this animation for fucks sake", MAP_ANIMATIONS[entityId], entityId);
-        //     }
-        // }
     }
-
-    model.endUpdate();
-    graph.refresh();
 }
 
-function changeTheme() {
-    var mapXmlData;
+function changeMap(data) {
+    refreshingMap = true;
 
-    if (mapTheme == 'light' && mapData.data.hasOwnProperty('dark')) {
-        mapTheme = 'dark';
-        mapXmlData = mapData.data['dark'];
-    }
-    else if (mapTheme == 'dark' && mapData.data.hasOwnProperty('light')) {
-        mapTheme = 'light';
-        mapXmlData = mapData.data['light'];
+    var mapXmlData = (data && typeof data.data == 'string') ? data.data : null;
+    var mapXmlType = (data && typeof data.type == 'string') ? data.type : mapData.type;
+
+    if (!mapXmlData) {
+        if (mapTheme == 'light' && mapData.data.hasOwnProperty('dark')) {
+            mapTheme = 'dark';
+            mapXmlData = mapData.data['dark'];
+        }
+        else if (mapTheme == 'dark' && mapData.data.hasOwnProperty('light')) {
+            mapTheme = 'light';
+            mapXmlData = mapData.data['light'];
+        }
     }
 
     graph.getModel()
         .beginUpdate();
 
     try {
-        switch (mapData.type) {
+        // switch (mapData.type) {
+        switch (mapXmlType) {
             case 'file':
                 createGraphFromXmlFile(graph, mapXmlData);
                 break;
@@ -741,6 +890,7 @@ function changeTheme() {
         if (outlineDOM != null) {
             outlineDOM.style.background = graph.model.background;
         }
+        refreshingMap = false;
     }
 
     updateMap();
@@ -767,7 +917,7 @@ function addToolbarButton(graphObj, toolbar, action, label, image, isTransparent
         button.style.border = 'none';
     }
 
-    mxEvent.addListener(button, 'click', function (evt) {
+    mxEvent.addListener(button, 'click', function(evt) {
         switch (action) {
             case 'async':
                 switch (asyncClient.getAsyncState()) {
@@ -852,7 +1002,16 @@ function addToolbarButton(graphObj, toolbar, action, label, image, isTransparent
                 break;
 
             case 'theme':
-                changeTheme();
+                changeMap();
+                break;
+
+            case 'mainPage':
+                if (pages.length > 1) {
+                    changeMap({
+                        type: 'text',
+                        data: pages[0].data
+                    });
+                }
                 break;
         }
     });
@@ -871,17 +1030,9 @@ function updateMap() {
 
                 if (allCells[i].getAttribute('onClick') != undefined) {
                     MAP_CALLBACKS[allCells[i].id] = allCells[i].getAttribute('onClick');
-                    // console.log(allCells[i].getAttribute('onClick'));
-                    // console.log(typeof allCells[i].getAttribute('onClick'));
-                    //
-                    // var target = allCells[i];
-                    //
-                    // mxEvent.addListener(target, 'click', function() {
-                    //     eval(allCells[i].getAttribute('onClick'));
-                    // });
                 }
 
-                if (cellEntityId != '') {
+                if (cellEntityId) {
                     if (!Array.isArray(DYNAMIC_CELLS[cellEntityId])) {
                         DYNAMIC_CELLS[cellEntityId] = [];
                     }
@@ -893,7 +1044,7 @@ function updateMap() {
 
                             allCells[i].getAttribute('breakPoints')
                                 .split(',')
-                                .map(function (str) {
+                                .map(function(str) {
                                     visValues.push(parseInt(str.split(':')[0].trim()));
                                     visOpacities.push(str.split(':')[1].trim());
                                 });
@@ -924,7 +1075,7 @@ function updateMap() {
                                 ledColors = [],
                                 ledBreakPoints = allCells[i].getAttribute('breakPoints')
                                     .split(',')
-                                    .map(function (str) {
+                                    .map(function(str) {
                                         ledValues.push(parseInt(str.split(':')[0].trim()));
                                         ledColors.push(str.split(':')[1].trim());
                                     });
@@ -963,7 +1114,7 @@ function updateMap() {
                                 progressBarColors = [],
                                 progressBarBreakPoints = allCells[i].getAttribute('breakPoints')
                                     .split(',')
-                                    .map(function (str) {
+                                    .map(function(str) {
                                         progressBarStops.push(str.split(':')[0].trim());
                                         progressBarColors.push(str.split(':')[1].trim());
                                     });
@@ -1058,10 +1209,37 @@ function updateMap() {
                             break;
                     }
 
-                    // if(allCells[i].getAttribute('animation')) {
-                    //     console.log(allCells[i].getAttribute('id'));
-                    //     MAP_ANIMATIONS[cellEntityId] = allCells[i].getAttribute('animation');
-                    // }
+                    if (allCells[i].getAttribute('animation')) {
+                        switch (allCells[i].getAttribute('animation')) {
+                            case 'rotate':
+                                var rotateValues = [],
+                                    rotateSpeeds = [],
+                                    rotateBreakPoints = allCells[i].getAttribute('rotateBreakPoints')
+                                        .split(',')
+                                        .map(function(str) {
+                                            rotateValues.push(parseInt(str.split(':')[0].trim()));
+                                            rotateSpeeds.push(str.split(':')[1].trim());
+                                        });
+
+                                if (!Array.isArray(MAP_ANIMATIONS[cellEntityId])) {
+                                    MAP_ANIMATIONS[cellEntityId] = [];
+                                }
+
+                                MAP_ANIMATIONS[cellEntityId].push({
+                                    type: 'rotate',
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    values: rotateValues,
+                                    speeds: rotateSpeeds
+                                });
+
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
                 }
             }
         }
@@ -1072,7 +1250,7 @@ function updateMap() {
 
     console.log({
         DYNAMIC_CELLS,
-        // MAP_ANIMATIONS,
+        MAP_ANIMATIONS,
         MAP_CELLS,
         MAP_LEDS,
         MAP_PROGRESS_BAR,
@@ -1082,11 +1260,11 @@ function updateMap() {
 }
 
 function handleNotifications(alarm) {
-    return;
+    // return;
     var uniqueId = new Date().getTime();
 
     Toastify({
-        selector: "notificationContainer",
+        selector: 'notificationContainer',
         text: alarm.message,
         time: toasterTime(alarm.creationTime),
         typeText: alarm.alarmType,
@@ -1102,7 +1280,7 @@ function handleNotifications(alarm) {
             acknowledge: {
                 id: alarm.entityId,
                 uniqueId: uniqueId,
-                name: "Send Ack",
+                name: 'Send Ack',
                 callback: function() {
                     sendAlarmAcknowledge(alarm.entityId, uniqueId);
                 }
@@ -1110,7 +1288,7 @@ function handleNotifications(alarm) {
             close: {
                 id: alarm.entityId,
                 uniqueId: uniqueId,
-                name: "Close",
+                name: 'Close',
                 disable: true,
                 callback: function(event) {
                     sendAlarmClose(alarm.entityId);
@@ -1121,56 +1299,53 @@ function handleNotifications(alarm) {
             forceClose: {
                 id: alarm.entityId,
                 uniqueId: uniqueId,
-                name: "Force Close!",
+                name: 'Force Close!',
                 callback: function(event) {
                     event.target.parentElement.parentElement.removeChild(event.target.parentElement);
                     Toastify.reposition();
                 }
             }
         }
-    }).showToast(function(element) {
-        notifications.push(element);
-    });
+    })
+        .showToast(function(element) {
+            notifications.push(element);
+        });
 }
 
 function sendAlarmAcknowledge(id, uniqueId) {
-    var data = {
-        type: 10,
-        content: JSON.stringify({
-            id: id
-        })
-    };
-
-    sendAsyncMessage(data);
-    document.getElementById(id+"-"+uniqueId+"-close").disabled = false;
+    // var data = {
+    //     type: 10,
+    //     content: JSON.stringify({
+    //         id: id
+    //     })
+    // };
+    //
+    // sendAsyncMessage(data);
+    document.getElementById(id + '-' + uniqueId + '-close').disabled = false;
 }
 
 function sendAlarmClose(id) {
-    var data = {
-        type: 11,
-        content: JSON.stringify({
-            id: id
-        })
-    };
-
-    sendAsyncMessage(data);
+    // var data = {
+    //     type: 11,
+    //     content: JSON.stringify({
+    //         id: id
+    //     })
+    // };
+    //
+    // sendAsyncMessage(data);
 }
 
 /**
  * Global Window Functions
  */
 
-window.addEventListener('resize', function () {
+window.addEventListener('resize', function() {
     if (graph) {
         cw = graph.container.clientWidth - margin;
         ch = graph.container.clientHeight - margin;
 
         outlineDOM.style.width = containerDOM.getBoundingClientRect().width / 5;
         outlineDOM.style.height = containerDOM.getBoundingClientRect().height / 5;
-    }
-
-    if(openNotifyMenu) {
-        openNotifyMenu.style.left = (document.getElementById(notificationContainer).clientWidth) ? document.getElementById(notificationContainer).clientWidth + 20 : 20;
     }
 });
 
@@ -1179,7 +1354,7 @@ window.addEventListener('resize', function () {
  */
 
 function fakeDataGenerator() {
-    setInterval(function () {
+    setInterval(function() {
         var data = {
             entityType: 'tag',
             entityId: '16',
@@ -1332,10 +1507,11 @@ function fakeDataGenerator() {
 
         asyncData[data.entityId] = data;
 
+        // Rotating element
         var data = {
             entityType: 'tag',
             entityId: '25',
-            value: Math.floor(Math.random() * 2),
+            value: Math.floor(Math.random() * 3),
             creationTime: Date.now()
         };
 
@@ -1360,26 +1536,15 @@ function fakeDataGenerator() {
         asyncData[data.entityId] = data;
     }, 100);
 
-    var data = {
-        entityType: 'alarm',
-        entityId: Math.floor(Math.random() * 10),
-        value: Math.random() * 50,
-        message: "This one is kinda long so it should take more space. This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),
-        creationTime: Date.now(),
-        alarmType: 'danger'
-    };
-    handleNotifications(data);
-
-    setInterval(() => {
+    setInterval(function() {
         var types = ['danger', 'warning', 'info', ''];
-
         var data = {
             entityType: 'alarm',
             entityId: Math.floor(Math.random() * 10),
             value: Math.random() * 50,
-            message: "This is a random message at " + new Date().toLocaleDateString() + " - " + new Date().toLocaleTimeString(),
+            message: 'This is a random message at ' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString(),
             creationTime: Date.now(),
-            alarmType: types[Math.floor(Math.random()*4)]
+            alarmType: types[Math.floor(Math.random() * 4)]
         };
         handleNotifications(data);
     }, 5000);
@@ -1396,11 +1561,12 @@ function bytesToString(arr) {
 };
 
 function monthName(month, short) {
-    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    if(short) {
+    if (short) {
         return months[month].substring(0, 3);
-    } else {
+    }
+    else {
         return months[month];
     }
 }
@@ -1409,5 +1575,5 @@ function toasterTime(timestamp) {
     return new Date(timestamp).getDate() + ' ' +
         monthName(new Date(timestamp).getMonth()) + ' ' +
         new Date(timestamp).getFullYear() + ' at ' +
-        new Date(timestamp).toLocaleTimeString()
+        new Date(timestamp).toLocaleTimeString();
 }
