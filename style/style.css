@@ -108,6 +108,26 @@
     display: none;
 }
 
+#footer-copyright {
+    color: #aaa;
+    display: block;
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    text-decoration: none;
+    font-size: 10px;
+    opacity: 0.5;
+    -webkit-transition: opacity 0.3s;
+    -moz-transition: opacity 0.3s;
+    -ms-transition: opacity 0.3s;
+    -o-transition: opacity 0.3s;
+    transition: opacity 0.3s;
+}
+
+#footer-copyright:hover {
+    opacity: 1;
+}
+
 /**
  * ----------------------------------------
  * animation rotate-clock-wise

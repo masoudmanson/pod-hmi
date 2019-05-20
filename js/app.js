@@ -82,14 +82,32 @@ function initAsync(params) {
 
         switch(content.type) {
             case 14:
-                asyncData[content.entityId] = JSON.parse(JSON.parse(content.content));
+                try {
+                    var newContent = JSON.parse(JSON.parse(content.content));
+                } catch(e) {
+                    console.log(e);
+                }
+                finally {
+                    asyncData[newContent.entityId] = newContent;
+                }
+                break;
+
+            case 15:
+                try {
+                    var newContent = JSON.parse(content.content);
+                } catch(e) {
+                    console.log(e);
+                }
+                finally {
+                    asyncData[newContent.entityId] = newContent;
+                }
+
+                handleNotifications(newContent);
                 break;
 
             default:
                 break;
         }
-
-        console.log(asyncData);
     });
 
     /**
@@ -598,10 +616,10 @@ function renderLiveDataOnMapWithPitch(content) {
                 value = content[key].value || 0,
                 type = content[key].entityType || '';
 
-            if (type.toLowerCase() == 'alarm') {
-                handleNotifications(content[key]);
-            }
-            else {
+            // if (type.toLowerCase() == 'alarm') {
+            //     handleNotifications(content[key]);
+            // }
+            // else {
                 if (DYNAMIC_CELLS[entityId]) {
                     for (var i = 0; i < DYNAMIC_CELLS[entityId].length; i++) {
                         switch (DYNAMIC_CELLS[entityId][i].type) {
@@ -765,7 +783,7 @@ function renderLiveDataOnMapWithPitch(content) {
                         }
                     }
                 }
-            }
+            // }
         }
 
         model.endUpdate();
@@ -1036,98 +1054,121 @@ function updateMap() {
                     if (!Array.isArray(DYNAMIC_CELLS[cellEntityId])) {
                         DYNAMIC_CELLS[cellEntityId] = [];
                     }
+                    var tagConnections = allCells[i].getAttribute('tagConnections');
+                    try {
+                        tagConnections = JSON.parse(tagConnections);
+                    } catch(e) {
+                        console.log(e);
+                    } finally {
+                        switch (allCells[i].getAttribute('type')) {
+                            case 'visibility':
+                                var visValues = [],
+                                    visOpacities = [],
+                                    visBreakPoints = JSON.parse(tagConnections.breakPoints);
 
-                    switch (allCells[i].getAttribute('type')) {
-                        case 'visibility':
-                            var visValues = [],
-                                visOpacities = [];
+                                    for (var b in visBreakPoints) {
+                                        visValues.push(parseFloat(b));
+                                        visOpacities.push(visBreakPoints[b]);
+                                    }
 
-                            allCells[i].getAttribute('breakPoints')
-                                .split(',')
-                                .map(function(str) {
-                                    visValues.push(parseInt(str.split(':')[0].trim()));
-                                    visOpacities.push(str.split(':')[1].trim());
+                                if (!Array.isArray(MAP_VISIBILITY[cellEntityId])) {
+                                    MAP_VISIBILITY[cellEntityId] = [];
+                                }
+
+                                MAP_VISIBILITY[cellEntityId].push({
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    values: visValues,
+                                    opacities: visOpacities
                                 });
 
-                            if (!Array.isArray(MAP_VISIBILITY[cellEntityId])) {
-                                MAP_VISIBILITY[cellEntityId] = [];
-                            }
+                                DYNAMIC_CELLS[cellEntityId].push({
+                                    type: 'visibility',
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    values: visValues,
+                                    opacities: visOpacities
+                                });
 
-                            MAP_VISIBILITY[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                values: visValues,
-                                opacities: visOpacities
-                            });
+                                break;
 
-                            DYNAMIC_CELLS[cellEntityId].push({
-                                type: 'visibility',
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                values: visValues,
-                                opacities: visOpacities
-                            });
+                            case 'led':
+                                var ledValues = [],
+                                    ledColors = [],
+                                    ledBreakPoints = JSON.parse(tagConnections.breakPoints);
+                                    for (var b in ledBreakPoints) {
+                                        ledValues.push(parseFloat(b));
+                                        ledColors.push(ledBreakPoints[b]);
+                                    }
 
-                            break;
+                                if (!Array.isArray(MAP_LEDS[cellEntityId])) {
+                                    MAP_LEDS[cellEntityId] = [];
+                                }
 
-                        case 'led':
-                            var ledValues = [],
-                                ledColors = [],
-                                ledBreakPoints = allCells[i].getAttribute('breakPoints')
-                                    .split(',')
-                                    .map(function(str) {
-                                        ledValues.push(parseInt(str.split(':')[0].trim()));
-                                        ledColors.push(str.split(':')[1].trim());
-                                    });
-
-                            if (!Array.isArray(MAP_LEDS[cellEntityId])) {
-                                MAP_LEDS[cellEntityId] = [];
-                            }
-
-                            MAP_LEDS[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                values: ledValues,
-                                colors: ledColors
-                            });
-
-                            DYNAMIC_CELLS[cellEntityId].push({
-                                type: 'led',
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                values: ledValues,
-                                colors: ledColors
-                            });
-
-                            break;
-
-                        case 'progress_bar':
-                            var cellGeometry = allCells[i].getGeometry(),
-                                cellLength = (cellGeometry.height > cellGeometry.width) ? cellGeometry.height : cellGeometry.width,
-                                initialLength = (MAP_PROGRESS_BAR[cellEntityId] && MAP_PROGRESS_BAR[cellEntityId][0].initialLength > 0)
-                                    ? MAP_PROGRESS_BAR[cellEntityId][0].initialLength
-                                    : cellLength,
-                                valueRatio = (allCells[i].getAttribute('maxValue') > 0) ? allCells[i].getAttribute('maxValue') / initialLength : 1,
-                                progressBarStops = [],
-                                progressBarColors = [],
-                                progressBarBreakPoints = allCells[i].getAttribute('breakPoints')
-                                    .split(',')
-                                    .map(function(str) {
-                                        progressBarStops.push(str.split(':')[0].trim());
-                                        progressBarColors.push(str.split(':')[1].trim());
-                                    });
-
-                            if (!Array.isArray(MAP_PROGRESS_BAR[cellEntityId])) {
-                                MAP_PROGRESS_BAR[cellEntityId] = [];
-
-                                MAP_PROGRESS_BAR[cellEntityId].push({
+                                MAP_LEDS[cellEntityId].push({
                                     cell: allCells[i],
                                     id: allCells[i].id,
                                     label: allCells[i].getAttribute('label'),
-                                    initialLength: initialLength,
+                                    values: ledValues,
+                                    colors: ledColors
+                                });
+
+                                DYNAMIC_CELLS[cellEntityId].push({
+                                    type: 'led',
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    values: ledValues,
+                                    colors: ledColors
+                                });
+
+                                break;
+
+                            case 'progress_bar':
+                                var cellGeometry = allCells[i].getGeometry(),
+                                    cellLength = (cellGeometry.height > cellGeometry.width) ? cellGeometry.height : cellGeometry.width,
+                                    initialLength = (MAP_PROGRESS_BAR[cellEntityId] && MAP_PROGRESS_BAR[cellEntityId][0].initialLength > 0)
+                                        ? MAP_PROGRESS_BAR[cellEntityId][0].initialLength
+                                        : cellLength,
+                                    valueRatio = (tagConnections.maxValue > 0) ? tagConnections.maxValue / initialLength : 1,
+                                    progressBarStops = [],
+                                    progressBarColors = [],
+                                    progressBarBreakPoints = JSON.parse(tagConnections.breakPoints);
+
+                                    for (var b in progressBarBreakPoints) {
+                                        progressBarStops.push(parseFloat(b));
+                                        progressBarColors.push(progressBarBreakPoints[b]);
+                                    }
+
+
+                                if (!Array.isArray(MAP_PROGRESS_BAR[cellEntityId])) {
+                                    MAP_PROGRESS_BAR[cellEntityId] = [];
+
+                                    MAP_PROGRESS_BAR[cellEntityId].push({
+                                        cell: allCells[i],
+                                        id: allCells[i].id,
+                                        label: allCells[i].getAttribute('label'),
+                                        initialLength: initialLength,
+                                        valueRatio: valueRatio,
+                                        progressBarStops: progressBarStops,
+                                        progressBarColors: progressBarColors,
+                                        endPoint: {
+                                            x: cellGeometry.y + cellGeometry.width,
+                                            y: cellGeometry.y + cellGeometry.height
+                                        },
+                                        cellOrientation: (cellGeometry.height > cellGeometry.width)
+                                            ? 'vertical'
+                                            : 'horizontal'
+                                    });
+                                }
+
+                                DYNAMIC_CELLS[cellEntityId].push({
+                                    type: 'progress_bar',
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
                                     valueRatio: valueRatio,
+                                    initialLength: initialLength,
                                     progressBarStops: progressBarStops,
                                     progressBarColors: progressBarColors,
                                     endPoint: {
@@ -1138,106 +1179,95 @@ function updateMap() {
                                         ? 'vertical'
                                         : 'horizontal'
                                 });
-                            }
+                                break;
 
-                            DYNAMIC_CELLS[cellEntityId].push({
-                                type: 'progress_bar',
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                valueRatio: valueRatio,
-                                initialLength: initialLength,
-                                progressBarStops: progressBarStops,
-                                progressBarColors: progressBarColors,
-                                endPoint: {
-                                    x: cellGeometry.y + cellGeometry.width,
-                                    y: cellGeometry.y + cellGeometry.height
-                                },
-                                cellOrientation: (cellGeometry.height > cellGeometry.width)
-                                    ? 'vertical'
-                                    : 'horizontal'
-                            });
-                            break;
-
-                        case 'speedometer':
-                            if (!Array.isArray(MAP_SPEEDOMETER[cellEntityId])) {
-                                MAP_SPEEDOMETER[cellEntityId] = [];
-                            }
-
-                            MAP_SPEEDOMETER[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                minValue: allCells[i].getAttribute('minValue'),
-                                maxValue: allCells[i].getAttribute('maxValue'),
-                                step: allCells[i].getAttribute('step'),
-                                angel: allCells[i].getAttribute('angel'),
-                                previousValue: 0
-                            });
-
-                            DYNAMIC_CELLS[cellEntityId].push({
-                                type: 'speedometer',
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                minValue: allCells[i].getAttribute('minValue'),
-                                maxValue: allCells[i].getAttribute('maxValue'),
-                                step: allCells[i].getAttribute('step'),
-                                angel: allCells[i].getAttribute('angel'),
-                                previousValue: 0
-                            });
-                            break;
-
-                        default:
-                            if (!Array.isArray(MAP_CELLS[cellEntityId])) {
-                                MAP_CELLS[cellEntityId] = [];
-                            }
-
-                            MAP_CELLS[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                unit: allCells[i].getAttribute('unit')
-                            });
-
-                            DYNAMIC_CELLS[cellEntityId].push({
-                                cell: allCells[i],
-                                id: allCells[i].id,
-                                label: allCells[i].getAttribute('label'),
-                                unit: allCells[i].getAttribute('unit')
-                            });
-                            break;
-                    }
-
-                    if (allCells[i].getAttribute('animation')) {
-                        switch (allCells[i].getAttribute('animation')) {
-                            case 'rotate':
-                                var rotateValues = [],
-                                    rotateSpeeds = [],
-                                    rotateBreakPoints = allCells[i].getAttribute('rotateBreakPoints')
-                                        .split(',')
-                                        .map(function(str) {
-                                            rotateValues.push(parseInt(str.split(':')[0].trim()));
-                                            rotateSpeeds.push(str.split(':')[1].trim());
-                                        });
-
-                                if (!Array.isArray(MAP_ANIMATIONS[cellEntityId])) {
-                                    MAP_ANIMATIONS[cellEntityId] = [];
+                            case 'speedometer':
+                                if (!Array.isArray(MAP_SPEEDOMETER[cellEntityId])) {
+                                    MAP_SPEEDOMETER[cellEntityId] = [];
                                 }
 
-                                MAP_ANIMATIONS[cellEntityId].push({
-                                    type: 'rotate',
+                                MAP_SPEEDOMETER[cellEntityId].push({
                                     cell: allCells[i],
                                     id: allCells[i].id,
                                     label: allCells[i].getAttribute('label'),
-                                    values: rotateValues,
-                                    speeds: rotateSpeeds
+                                    minValue: tagConnections.minValue,
+                                    maxValue: tagConnections.maxValue,
+                                    step: tagConnections.step,
+                                    angel: tagConnections.angel,
+                                    previousValue: 0
                                 });
 
+                                DYNAMIC_CELLS[cellEntityId].push({
+                                    type: 'speedometer',
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    minValue: tagConnections.minValue,
+                                    maxValue: tagConnections.maxValue,
+                                    step: tagConnections.step,
+                                    angel: tagConnections.angel,
+                                    previousValue: 0
+                                });
                                 break;
 
-                            default:
+                            case 'text':
+                                if (!Array.isArray(MAP_CELLS[cellEntityId])) {
+                                    MAP_CELLS[cellEntityId] = [];
+                                }
+
+                                MAP_CELLS[cellEntityId].push({
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    unit: tagConnections.unit
+                                });
+
+                                DYNAMIC_CELLS[cellEntityId].push({
+                                    cell: allCells[i],
+                                    id: allCells[i].id,
+                                    label: allCells[i].getAttribute('label'),
+                                    unit: tagConnections.unit
+                                });
                                 break;
+                        }
+                    }
+
+                    if (allCells[i].getAttribute('animation')) {
+                        var tagAnimations = allCells[i].getAttribute('tagAnimations');
+                        try {
+                            tagAnimations = JSON.parse(tagAnimations);
+                        } catch(e) {
+                            console.log(e);
+                        } finally {
+                            switch (tagAnimations.animation) {
+                                case 'rotate':
+                                    var rotateValues = [],
+                                        rotateSpeeds = [],
+                                        rotateBreakPoints = JSON.parse(tagAnimations.rotateBreakPoints);
+
+                                        for (var b in rotateBreakPoints) {
+                                            rotateValues.push(parseFloat(b));
+                                            rotateSpeeds.push(rotateBreakPoints[b]);
+                                        }
+
+                                    if (!Array.isArray(MAP_ANIMATIONS[cellEntityId])) {
+                                        MAP_ANIMATIONS[cellEntityId] = [];
+                                    }
+
+                                    MAP_ANIMATIONS[cellEntityId].push({
+                                        type: 'rotate',
+                                        cell: allCells[i],
+                                        id: allCells[i].id,
+                                        label: allCells[i].getAttribute('label'),
+                                        values: rotateValues,
+                                        speeds: rotateSpeeds
+                                    });
+
+                                    break;
+
+                                default:
+                                    break;
+                            }
                         }
                     }
                 }
@@ -1260,51 +1290,50 @@ function updateMap() {
 }
 
 function handleNotifications(alarm) {
-    // return;
-    var uniqueId = new Date().getTime();
+    var uniqueId = alarm.id;
 
     Toastify({
         selector: 'notificationContainer',
         text: alarm.message,
-        time: toasterTime(alarm.creationTime),
+        time: toasterTime(alarm.dateTime),
         typeText: alarm.alarmType,
         duration: toasterParams.duration || 5000,
         close: toasterParams.closeBtn,
         autoClose: toasterParams.autoClose,
         gravity: toasterParams.positionVertical || 'bottom',
         positionLeft: (typeof toasterParams.positionHorizontal == 'string') ? toasterParams.positionHorizontal == 'left' : true,
-        className: (typeof alarm.alarmType == 'string') ? 'toastify-' + alarm.alarmType : '',
+        className: (typeof alarm.alarmType == 'string') ? 'toastify-' + alarm.alarmType : 'toastify-warning',
         callback: function() {
         },
         actions: {
             acknowledge: {
-                id: alarm.entityId,
+                id: alarm.id,
                 uniqueId: uniqueId,
                 name: 'Send Ack',
                 callback: function() {
-                    sendAlarmAcknowledge(alarm.entityId, uniqueId);
+                    sendAlarmAcknowledge(alarm.id, uniqueId);
                 }
             },
             close: {
-                id: alarm.entityId,
+                id: alarm.id,
                 uniqueId: uniqueId,
                 name: 'Close',
-                disable: true,
+                disable: !alarm.acknowledged,
                 callback: function(event) {
-                    sendAlarmClose(alarm.entityId);
+                    sendAlarmClose(alarm.id);
                     event.target.parentElement.parentElement.removeChild(event.target.parentElement);
                     Toastify.reposition();
                 }
             },
-            forceClose: {
-                id: alarm.entityId,
-                uniqueId: uniqueId,
-                name: 'Force Close!',
-                callback: function(event) {
-                    event.target.parentElement.parentElement.removeChild(event.target.parentElement);
-                    Toastify.reposition();
-                }
-            }
+            // forceClose: {
+            //     id: alarm.entityId,
+            //     uniqueId: uniqueId,
+            //     name: 'Force Close!',
+            //     callback: function(event) {
+            //         event.target.parentElement.parentElement.removeChild(event.target.parentElement);
+            //         Toastify.reposition();
+            //     }
+            // }
         }
     })
         .showToast(function(element) {
