@@ -6,6 +6,7 @@
     <link rel="shortcut icon" href="http://172.16.110.26/poddraw/webapp/favicon.png">
 
     <link rel="stylesheet" href="style/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css">
     <!--<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">-->
 
     <script type="text/javascript">
@@ -16,6 +17,7 @@
     <script type="text/javascript" src="js/podasync.min.js"></script>
     <script type="text/javascript" src="js/viewer.min.js"></script>
     <script type="text/javascript" src="js/toastify-js.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
 </head>
 
@@ -30,11 +32,8 @@
 <script type="text/javascript">
     (function () {
         main({
+            fakeData: true,
             protocol: 'websockets',
-            // protocolParams : {
-            //     method: 'GET',
-            //     url: "http://parking.bidsys.ir/pardis/setget.php?CMD=GET&location=pardisb1"
-            // },
             protocolParams: {
                 socketAddress: 'ws://172.16.110.20:8003/ws',
                 serverName: 'fanitoring-process',
@@ -48,17 +47,17 @@
             },
             map: {
                 type: 'file',
-                data: 'maps/Fanitoring-Demo.xml',
-//                data: {
-//                    light: 'maps/fanitoring-light.xml',
-//                    dark: 'maps/fanitoring-dark.xml'
-//                },
-                theme: 'light'
+                data: 'maps/fanitoring-demo.xml'
             },
             graphContainer: 'podGraph',
             outlineContainer: 'outlineContainer',
             statusContainer: 'statusContainer',
             notificationContainer: 'notificationContainer',
+            logButton: {
+                type: 'window', // [ tab / window ]
+                title: 'Fanitoring Logs',
+                url: 'https://www.google.com'
+            },
             notificationOptions: {
                 enable: true,
                 duration: 5000,
@@ -68,7 +67,8 @@
                 positionVertical: 'top'
             },
             renderingPitch: 'high', // high, medium or low
-            numbersRoundPrecision: 2 // round numbers to at most 2 decimal places ( 2.325241 => 2.32 )
+            numbersRoundPrecision: 2, // round numbers to at most 2 decimal places ( 2.325241 => 2.32 )
+            chartDataArrayMaxLength: 20
         });
     })();
 </script>
